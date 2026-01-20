@@ -1,6 +1,6 @@
 /**
  * VecGeo Viewer - Layout Styles
- * App container, header, control panel, map, status bar
+ * Solarized-themed app container, header, control panel, map, status bar
  */
 
 /* --- App Container --- */
@@ -9,6 +9,7 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background: var(--bg-primary);
 }
 
 /* --- Header --- */
@@ -17,7 +18,7 @@
   justify-content: space-between;
   align-items: center;
   height: var(--header-height);
-  padding: 0 20px;
+  padding: 0 16px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
@@ -31,13 +32,14 @@
 }
 
 .header-left h1 {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  color: var(--accent-primary);
 }
 
 .header-left .subtitle {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   display: none;
 }
@@ -51,7 +53,7 @@
 .header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 /* Icon Buttons */
@@ -59,8 +61,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -71,7 +73,7 @@
 
 .icon-btn:hover {
   background: var(--bg-tertiary);
-  color: var(--text-primary);
+  color: var(--accent-primary);
 }
 
 .icon-btn:active {
@@ -97,6 +99,24 @@
   transition: transform var(--transition-normal);
 }
 
+/* Custom scrollbar for panel */
+.control-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.control-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.control-panel::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+
+.control-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
 @media (max-width: 768px) {
   .control-panel {
     position: absolute;
@@ -113,17 +133,21 @@
 }
 
 .panel-section {
-  padding: 16px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-color);
 }
 
+.panel-section:last-child {
+  border-bottom: none;
+}
+
 .panel-section h3 {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 12px;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
 }
 
 /* --- Map Wrapper --- */
@@ -148,23 +172,41 @@
 .leaflet-control-zoom {
   border: none !important;
   box-shadow: var(--shadow-md) !important;
+  overflow: hidden;
+  border-radius: var(--radius-sm) !important;
 }
 
 .leaflet-control-zoom a {
   background: var(--bg-elevated) !important;
   color: var(--text-primary) !important;
   border: 1px solid var(--border-color) !important;
+  width: 30px !important;
+  height: 30px !important;
+  line-height: 30px !important;
+  transition: all var(--transition-fast) !important;
 }
 
 .leaflet-control-zoom a:hover {
   background: var(--bg-tertiary) !important;
+  color: var(--accent-primary) !important;
+}
+
+.leaflet-control-zoom a:first-child {
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0 !important;
+}
+
+.leaflet-control-zoom a:last-child {
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm) !important;
 }
 
 .leaflet-control-attribution {
   background: var(--glass-bg) !important;
   backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   color: var(--text-muted) !important;
-  font-size: 0.7rem !important;
+  font-size: 0.65rem !important;
+  padding: 3px 6px !important;
+  border-radius: var(--radius-sm) 0 0 0 !important;
 }
 
 .leaflet-control-attribution a {
@@ -177,25 +219,36 @@
   justify-content: space-between;
   align-items: center;
   height: var(--status-height);
-  padding: 0 16px;
+  padding: 0 14px;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
   font-size: 0.75rem;
   color: var(--text-muted);
   flex-shrink: 0;
   z-index: 100;
+  gap: 12px;
 }
 
 .status-left,
 .status-center,
 .status-right {
   flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.status-left {
+  gap: 6px;
 }
 
 .status-center {
-  text-align: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
 }
 
 .status-right {
-  text-align: right;
+  justify-content: flex-end;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
 }

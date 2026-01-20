@@ -4,7 +4,32 @@
  * Handles color scales, column analysis, legend, and visualization settings.
  */
 
-import {App} from '../app.js';
+import { App } from '../app.js';
+
+// ============================================
+// Custom Colormap Definitions
+// ============================================
+
+// Turbo colormap (Google AI) - sampled color stops
+const TURBO_COLORS = [
+  '#30123b', '#4145ab', '#4675ed', '#39a2fc', '#1bcfd4',
+  '#24eca6', '#61fc6c', '#a4fc3b', '#d1e834', '#f3c63a',
+  '#fe9b2d', '#f36315', '#d93806', '#b11901', '#7a0402'
+];
+
+// Cividis colormap (colorblind-friendly) - sampled color stops
+const CIVIDIS_COLORS = [
+  '#00204d', '#00306f', '#1e4174', '#3d5076', '#575d6d',
+  '#6f6b5d', '#867a49', '#9f8a32', '#ba9b1c', '#d6ac00',
+  '#f4c800', '#fee838', '#fdfd66'
+];
+
+// Register custom colormaps with chroma
+if (typeof chroma !== 'undefined') {
+  chroma.brewer = chroma.brewer || {};
+  chroma.brewer.turbo = TURBO_COLORS;
+  chroma.brewer.cividis = CIVIDIS_COLORS;
+}
 
 // ============================================
 // Column Analysis
@@ -210,7 +235,7 @@ export function updateLegend() {
  */
 export function updateStatus(geojson) {
   const count = geojson?.features?.length || 0;
-  document.getElementById('featureCount').textContent = `${count.toLocaleString()} features`;
+  document.getElementById('featureCount').textContent = `${count.toLocaleString()} objects`;
   document.getElementById('currentColumn').textContent = App.currentColumn || '—';
 }
 

@@ -5,6 +5,9 @@ A simple web-based vector geospatial dataset viewer powered by DuckDB-WASM.
 > [!NOTE]
 > Report bugs and feature requests on the [issues page](https://github.com/CogitatorTech/vecgeo-viewer/issues).
 
+> [!IMPORTANT]
+> This application needs a working internet connection to work properly.
+
 ### Features
 
 - Load GeoJSON, Shapefile, and Parquet/GeoParquet files

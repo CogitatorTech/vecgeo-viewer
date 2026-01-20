@@ -4,12 +4,12 @@
  * Handles file parsing for GeoJSON, Shapefile, and Parquet formats.
  */
 
-import {App} from '../app.js';
-import {hideLoading, showError, showLoading} from './ui.js';
-import {transformCRS} from './crs.js';
-import {analyzeColumns} from './visualization.js';
-import {renderData} from './map.js';
-import {registerInDuckDB} from './duckdb.js';
+import { App } from '../app.js';
+import { hideLoading, showError, showLoading } from './ui.js';
+import { transformCRS } from './crs.js';
+import { analyzeColumns } from './visualization.js';
+import { renderData } from './map.js';
+import { registerInDuckDB } from './duckdb.js';
 
 // ============================================
 // File Handler
@@ -21,20 +21,40 @@ import {registerInDuckDB} from './duckdb.js';
  */
 export async function handleFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
+  const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.'));
 
   showLoading(`Loading ${file.name}...`);
 
   try {
     let geojson;
 
-    if (ext === 'geojson' || ext === 'json') {
-      geojson = await parseGeoJSON(file);
-    } else if (ext === 'zip') {
-      geojson = await parseShapefile(file);
-    } else if (ext === 'parquet' || ext === 'geoparquet') {
-      geojson = await parseParquet(file);
-    } else {
-      throw new Error(`Unsupported file format: .${ext}`);
+    switch (ext) {
+      case 'geojson':
+      case 'json':
+        geojson = await parseGeoJSON(file);
+        break;
+
+      case 'zip':
+        geojson = await parseShapefile(file);
+        break;
+
+      case 'parquet':
+      case 'geoparquet':
+        geojson = await parseParquet(file);
+        break;
+
+      case 'gpkg':
+        throw new Error('GeoPackage (.gpkg) is not yet supported in the browser. Please convert to GeoJSON using QGIS or ogr2ogr.');
+
+      case 'kml':
+      case 'kmz':
+        throw new Error('KML/KMZ files are not yet supported. Please convert to GeoJSON using geojson.io or QGIS.');
+
+      case 'gdb':
+        throw new Error('FileGDB (.gdb) requires desktop tools. Please convert to GeoJSON using QGIS or ArcGIS.');
+
+      default:
+        throw new Error(`Unsupported file format: .${ext}. Supported: GeoJSON, Shapefile (zip), Parquet.`);
     }
 
     await loadGeoJSON(geojson, file.name);
@@ -181,9 +201,20 @@ export async function loadGeoJSON(geojson, filename) {
 
   // Normalize to FeatureCollection
   if (geojson.type === 'Feature') {
-    geojson = {type: 'FeatureCollection', features: [geojson]};
+    geojson = { type: 'FeatureCollection', features: [geojson] };
   } else if (geojson.type !== 'FeatureCollection') {
     throw new Error('Invalid GeoJSON: Expected Feature or FeatureCollection');
+  }
+
+  // Apply feature limit
+  const originalCount = geojson.features.length;
+  if (App.featureLimit > 0 && originalCount > App.featureLimit) {
+    geojson = {
+      type: 'FeatureCollection',
+      features: geojson.features.slice(0, App.featureLimit)
+    };
+    console.log(`[Loader] Limited from ${originalCount} to ${App.featureLimit} objects`);
+    showError(`Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()} objects. Adjust limit in Performance Settings.`);
   }
 
   // Store original data
@@ -201,6 +232,8 @@ export async function loadGeoJSON(geojson, filename) {
 
   // Show controls
   document.getElementById('dataControls').style.display = 'block';
+  document.getElementById('visualizationControls').style.display = 'block';
+  document.getElementById('quickFilterSection').style.display = 'block';
   document.getElementById('sqlSection').style.display = 'block';
   document.getElementById('welcomeOverlay').classList.add('hidden');
 
@@ -212,5 +245,5 @@ export async function loadGeoJSON(geojson, filename) {
   }
 
   hideLoading();
-  console.log(`[VecGeo Viewer] Loaded ${geojson.features.length} features from ${filename}`);
+  console.log(`[VecGeo Viewer] Loaded ${geojson.features.length} objects from ${filename}`);
 }

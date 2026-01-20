@@ -11,29 +11,29 @@
 // Module Imports
 // ============================================
 
-import {initMap, renderData, resetView, setBasemap, toggleBasemap} from './modules/map.js';
-import {exportData, initDuckDB, resetFilter, runSQL} from './modules/duckdb.js';
-import {handleFile} from './modules/parsers.js';
-import {cycleColormap, cycleColumn, setColormap, setColumn} from './modules/visualization.js';
+import { initMap, renderData, resetView, setBasemap, toggleBasemap } from './modules/map.js';
+import { exportData, initDuckDB, resetFilter, runSQL } from './modules/duckdb.js';
+import { handleFile } from './modules/parsers.js';
+import { cycleColormap, cycleColumn, setColormap, setColumn } from './modules/visualization.js';
 import {
-  dataTableNextPage,
-  dataTablePrevPage,
-  filterDataTable,
-  hideDataViewer,
-  setDataTablePageSize,
-  showDataViewer,
-  sortDataTable
+    dataTableNextPage,
+    dataTablePrevPage,
+    filterDataTable,
+    hideDataViewer,
+    setDataTablePageSize,
+    showDataViewer,
+    sortDataTable
 } from './modules/data-viewer.js';
 import {
-  bindToWindow,
-  handleModalClick,
-  hideError,
-  initDragAndDrop,
-  initFileInput,
-  initKeyboardShortcuts,
-  restoreTheme,
-  toggleHelp,
-  toggleTheme
+    bindToWindow,
+    handleModalClick,
+    hideError,
+    initDragAndDrop,
+    initFileInput,
+    initKeyboardShortcuts,
+    restoreTheme,
+    toggleHelp,
+    toggleTheme
 } from './modules/ui.js';
 
 // ============================================
@@ -41,43 +41,48 @@ import {
 // ============================================
 
 export const App = {
-  // Leaflet map instance
-  map: null,
+    // Leaflet map instance
+    map: null,
 
-  // Current GeoJSON layer
-  geoJsonLayer: null,
+    // Current GeoJSON layer
+    geoJsonLayer: null,
 
-  // Basemap tile layer
-  basemapLayer: null,
+    // Basemap tile layer
+    basemapLayer: null,
 
-  // DuckDB instance
-  db: null,
-  conn: null,
+    // DuckDB instance
+    db: null,
+    conn: null,
 
-  // Loaded data
-  originalData: null,      // Original GeoJSON data
-  currentData: null,       // Filtered/transformed data
+    // Loaded data
+    originalData: null,      // Original GeoJSON data
+    currentData: null,       // Filtered/transformed data
 
-  // Column info
-  columns: [],             // All column names
-  numericColumns: [],      // Numeric column names
-  categoricalColumns: [],  // Categorical column names
-  currentColumn: null,     // Currently selected column
-  columnIndex: 0,          // Index for cycling columns
+    // Column info
+    columns: [],             // All column names
+    numericColumns: [],      // Numeric column names
+    categoricalColumns: [],  // Categorical column names
+    currentColumn: null,     // Currently selected column
+    columnIndex: 0,          // Index for cycling columns
 
-  // Color settings
-  colormaps: ['viridis', 'plasma', 'turbo', 'cividis', 'spectral', 'blues', 'reds'],
-  currentColormap: 'viridis',
-  colormapIndex: 0,
-  colorScale: null,
+    // Color settings
+    colormaps: ['viridis', 'plasma', 'turbo', 'cividis', 'spectral', 'blues', 'reds'],
+    currentColormap: 'viridis',
+    colormapIndex: 0,
+    colorScale: null,
 
-  // Feature bounds
-  dataBounds: null,
+    // Feature bounds
+    dataBounds: null,
 
-  // State flags
-  basemapVisible: true,
-  currentBasemap: 'dark',
-  isLoading: false,
+    // Rendering settings
+    featureLimit: 100000,     // Max features to load (0 = no limit)
+    simplifyTolerance: 0.001, // Geometry simplification tolerance (0 = off)
+    pointRadius: 6,           // Point marker radius in pixels
+
+    // State flags
+    basemapVisible: true,
+    currentBasemap: 'dark',
+    isLoading: false,
 };
 
 // ============================================
@@ -105,31 +110,116 @@ App.dataTablePrevPage = dataTablePrevPage;
 App.dataTableNextPage = dataTableNextPage;
 App.setDataTablePageSize = setDataTablePageSize;
 
+// Rendering settings methods
+App.setFeatureLimit = (value) => {
+    App.featureLimit = parseInt(value, 10) || 0;
+    document.getElementById('featureLimitInput').value = App.featureLimit;
+    console.log(`[Settings] Feature limit: ${App.featureLimit || 'no limit'}`);
+};
+
+App.setSimplifyTolerance = (value) => {
+    App.simplifyTolerance = parseFloat(value) || 0;
+    document.getElementById('simplifyValue').textContent = App.simplifyTolerance.toFixed(3);
+    // Re-render if we have data
+    if (App.currentData) {
+        renderData(App.currentData, true);
+    }
+    console.log(`[Settings] Simplify tolerance: ${App.simplifyTolerance}`);
+};
+
+App.setPointRadius = (value) => {
+    App.pointRadius = parseInt(value, 10) || 6;
+    document.getElementById('pointSizeValue').textContent = `${App.pointRadius}px`;
+    // Re-render if we have data
+    if (App.currentData) {
+        renderData(App.currentData, true);
+    }
+    console.log(`[Settings] Point radius: ${App.pointRadius}px`);
+};
+
+// Quick filter - simple expression parsing
+App.runQuickFilter = () => {
+    const input = document.getElementById('quickFilterInput').value.trim();
+    if (!input || !App.originalData) {
+        return;
+    }
+
+    try {
+        // Parse simple expressions like: column > value, column == "string", column != value
+        const match = input.match(/^(\w+)\s*(==|!=|>|<|>=|<=)\s*(.+)$/);
+        if (!match) {
+            throw new Error('Invalid expression. Use format: column > value or column == "text"');
+        }
+
+        const [, column, operator, rawValue] = match;
+
+        // Parse value (string or number)
+        let value = rawValue.trim();
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1); // String value
+        } else if (!isNaN(parseFloat(value))) {
+            value = parseFloat(value); // Number value
+        }
+
+        // Filter features
+        const filtered = App.originalData.features.filter(f => {
+            const propVal = f.properties?.[column];
+            if (propVal === null || propVal === undefined) return false;
+
+            switch (operator) {
+                case '==': return propVal == value;
+                case '!=': return propVal != value;
+                case '>': return parseFloat(propVal) > value;
+                case '<': return parseFloat(propVal) < value;
+                case '>=': return parseFloat(propVal) >= value;
+                case '<=': return parseFloat(propVal) <= value;
+                default: return true;
+            }
+        });
+
+        App.currentData = { type: 'FeatureCollection', features: filtered };
+        renderData(App.currentData);
+        console.log(`[QuickFilter] "${input}" → ${filtered.length} features`);
+
+    } catch (error) {
+        console.error('[QuickFilter]', error);
+        // Show error to user
+        const banner = document.getElementById('errorBanner');
+        const msgEl = document.getElementById('errorMessage');
+        if (banner && msgEl) {
+            msgEl.textContent = error.message;
+            banner.classList.remove('hidden');
+            setTimeout(() => banner.classList.add('hidden'), 5000);
+        }
+    }
+};
+
 // ============================================
 // Initialization
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Initialize map
-  initMap();
+    // Initialize map
+    initMap();
 
-  // Initialize UI event handlers
-  initDragAndDrop(handleFile);
-  initFileInput(handleFile);
-  initKeyboardShortcuts();
-  restoreTheme();
+    // Initialize UI event handlers
+    initDragAndDrop(handleFile);
+    initFileInput(handleFile);
+    initKeyboardShortcuts();
+    restoreTheme();
 
-  // Wire error banner close button
-  const closeBtn = document.getElementById('errorCloseBtn');
-  if (closeBtn) closeBtn.addEventListener('click', hideError);
+    // Wire error banner close button
+    const closeBtn = document.getElementById('errorCloseBtn');
+    if (closeBtn) closeBtn.addEventListener('click', hideError);
 
-  // Initialize DuckDB
-  await initDuckDB();
+    // Initialize DuckDB
+    await initDuckDB();
 
-  // Bind UI functions to window for inline handlers
-  bindToWindow();
+    // Bind UI functions to window for inline handlers
+    bindToWindow();
 
-  console.log('[VecGeo Viewer] Initialized');
+    console.log('[VecGeo Viewer] Initialized');
 });
 
 // ============================================
