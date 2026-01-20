@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Single Page App Template</title>
+    <link
+        href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+        rel="icon">
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link href="assets/css/styles.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="header">
+        <div class="header-left">
+            <h1>Single Page App Template</h1>
+        </div>
+        <div class="header-right">
+            <button class="theme-btn"
+                onclick="SoundManager.play('click'); window.open('https://github.com/habedi/template-single-page-app', '_blank')"
+                title="GitHub Repo" aria-label="View GitHub Repository">🐙
+            </button>
+            <button class="theme-btn" onclick="toggleHelp()" title="Help" aria-label="Help">❓</button>
+            <button class="theme-btn" onclick="toggleTheme()" title="Toggle Theme" aria-label="Toggle Theme">🌗</button>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <!-- Pane A -->
+        <div class="card-pane" id="pane-0">
+            <div class="pane-header">
+                <div class="pane-controls">
+                    <button class="sm-btn" onclick="createNewCard(0)">New</button>
+                    <label class="sm-btn file-btn">Load <input accept=".mcr,.bin,.gme,.mcd,.srm"
+                            onchange="loadFile(this, 0)" type="file"></label>
+                    <button class="sm-btn" disabled id="dl-0" onclick="downloadCard(0)">Save</button>
+                    <button class="sm-btn btn-danger" onclick="formatCard(0)" title="Format Card">Format</button>
+                </div>
+                <div class="pane-title">PANE 1</div>
+            </div>
+            <div class="file-status" id="status-0">No Data Loaded</div>
+            <div class="grid" id="grid-0"></div>
+        </div>
+
+        <!-- Pane B -->
+        <div class="card-pane" id="pane-1">
+            <div class="pane-header">
+                <div class="pane-controls">
+                    <button class="sm-btn" onclick="createNewCard(1)">New</button>
+                    <label class="sm-btn file-btn">Load <input accept=".mcr,.bin,.gme,.mcd,.srm"
+                            onchange="loadFile(this, 1)" type="file"></label>
+                    <button class="sm-btn" disabled id="dl-1" onclick="downloadCard(1)">Save</button>
+                    <button class="sm-btn btn-danger" onclick="formatCard(1)" title="Format Card">Format</button>
+                </div>
+                <div class="pane-title">PANE 2</div>
+            </div>
+            <div class="file-status" id="status-1">No Data Loaded</div>
+            <div class="grid" id="grid-1"></div>
+        </div>
+    </div>
+
+    <div class="drop-overlay" id="dropOverlay">
+        <div class="drop-msg">Drop File</div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal-overlay" id="helpModal" onclick="handleModalClick(event)" aria-hidden="true" role="dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>How to Use</h2>
+                <button class="close-btn" onclick="toggleHelp()" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h3>File Support</h3>
+                    <p>Demonstration file types are listed for the sample app. Replace with your own.</p>
+                </div>
+                <div class="help-section">
+                    <h3>Managing Items</h3>
+                    <ul>
+                        <li>Copy: Drag and drop from one pane to another.</li>
+                        <li>Delete: Use the Delete button or keyboard Delete.</li>
+                        <li>Recover: Look for "RECOVER" on empty slots if available.</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h3>Import / Export</h3>
+                    <ul>
+                        <li>Export: Click Export to download a single item.</li>
+                        <li>Import: Click Import on a slot to add an item.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <p>SPA Template v0.1.0</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert/Confirm Modal -->
+    <div class="modal-overlay" id="alertModal">
+        <div class="modal-content" style="width: 400px; text-align: center;">
+            <div class="modal-header" style="justify-content: center;">
+                <h2 id="alertTitle">ATTENTION</h2>
+            </div>
+            <div class="modal-body">
+                <p id="alertMessage" style="margin-bottom: 20px;"></p>
+                <div class="modal-footer"
+                    style="padding: 0; border: none; background: transparent; display: flex; justify-content: center; gap: 10px;">
+                    <button class="sm-btn" id="alertOkBtn" onclick="closeAlert(true)">OK</button>
+                    <button class="sm-btn btn-danger" id="alertCancelBtn" onclick="closeAlert(false)"
+                        style="display: none;">CANCEL
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden import input -->
+    <input accept=".mcs,.psx" class="import-input" id="importInput" onchange="handleImport(this)" type="file">
+
+    <script src="assets/js/app.js"></script>
+</body>
+
+</html>

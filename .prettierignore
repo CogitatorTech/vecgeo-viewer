@@ -1,0 +1,9 @@
+# Ignore build artifacts and environment files
+node_modules/
+dist/
+site/
+.env
+.DS_Store
+.idea/
+.git/
+
