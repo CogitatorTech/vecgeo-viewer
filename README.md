@@ -10,10 +10,12 @@ A simple web-based vector geospatial dataset viewer powered by DuckDB-WASM.
 - Load GeoJSON, Shapefile, and Parquet/GeoParquet files
 - Interactive map visualization
 - Color mapping by numeric or categorical columns
-- SQL filtering and transformations via DuckDB-WASM
+- Object filtering and transformations using DuckDB SQL
 - Export filtered data as GeoJSON
 - Light and dark theme support
 - Keyboard shortcuts for navigation
+
+---
 
 ### Getting Started
 
@@ -33,6 +35,8 @@ Visit the live app: [VecGeo Viewer](https://cogitatortech.github.io/vecgeo-viewe
    ```
 
 3. Open http://localhost:8085/index.html in your browser.
+
+---
 
 ### Contributing
 
