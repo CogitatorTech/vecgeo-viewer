@@ -1,0 +1,21 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"name": "Point A", "value": 10, "group": "alpha"},
+      "geometry": {"type": "Point", "coordinates": [0, 0]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"name": "Point B", "value": 25, "group": "beta"},
+      "geometry": {"type": "Point", "coordinates": [10, 10]}
+    },
+    {
+      "type": "Feature",
+      "properties": {"name": "Point C", "value": 50, "group": "alpha"},
+      "geometry": {"type": "Point", "coordinates": [-20, 5]}
+    }
+  ]
+}
+

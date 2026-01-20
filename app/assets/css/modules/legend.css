@@ -1,0 +1,50 @@
+/**
+ * VecGeo Viewer - Legend & Visualization Styles
+ * Color legend for map visualization
+ */
+
+/* --- Legend --- */
+#legendContent {
+  font-size: 0.8rem;
+}
+
+.legend-gradient {
+  height: 16px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.legend-range {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.legend-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

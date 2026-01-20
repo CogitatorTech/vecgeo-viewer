@@ -1,52 +1,38 @@
-## Template Single-page Web App
+## VecGeo Viewer
 
-This is a minimal template for a single-page web application (SPA).
+A simple web-based vector geospatial dataset viewer powered by DuckDB-WASM.
 
 > [!NOTE]
-> Report bugs and feature requests use the [issues page](https://github.com/habedi/template-single-page-app/issues).
+> Report bugs and feature requests on the [issues page](https://github.com/CogitatorTech/vecgeo-viewer/issues).
+
+### Features
+
+- Load GeoJSON, Shapefile, and Parquet/GeoParquet files
+- Interactive map visualization
+- Color mapping by numeric or categorical columns
+- SQL filtering and transformations via DuckDB-WASM
+- Export filtered data as GeoJSON
+- Light and dark theme support
+- Keyboard shortcuts for navigation
 
 ### Getting Started
 
-To use the App, visit [this URL](https://habedi.github.io/template-single-page-app/index.html) in your browser.
+Visit the live app: [VecGeo Viewer](https://cogitatortech.github.io/vecgeo-viewer/index.html)
 
-#### Run the App Locally
+#### Run Locally
 
 1. Clone the repository:
-
    ```bash
-   git clone https://github.com/habedi/template-single-page-app.git
-   cd template-single-page-app
+   git clone https://github.com/CogitatorTech/vecgeo-viewer.git
+   cd vecgeo-viewer
    ```
 
 2. Start the local HTTP server:
-
    ```bash
    bash scripts/start_server.sh
    ```
 
-Then open http://localhost:8085/index.html in your browser.
-
-### File Structure
-
-```
-template-single-page-app/
-├── app/                    # Main application files
-│   ├── index.html          # Entry point
-│   ├── 404.html            # Fallback for SPA routing
-│   └── assets/             # Static assets
-│       ├── css/
-│       │   └── styles.css  # Main stylesheet
-│       └── js/
-│           └── app.js      # Main JavaScript
-├── scripts/
-│   └── start_server.sh     # Local dev server script
-├── .github/
-│   └── workflows/
-│       └── docs.yml        # GitHub Pages deployment
-├── .editorconfig           # Editor formatting rules
-├── .prettierignore         # Prettier exclusions
-└── README.md
-```
+3. Open http://localhost:8085/index.html in your browser.
 
 ### Contributing
 
@@ -54,4 +40,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to make a contribution
 
 ### License
 
-This project is licensed under the MIT License ([LICENSE](LICENSE) or https://opensource.org/licenses/MIT)
+This project is licensed under the MIT License ([LICENSE](LICENSE))

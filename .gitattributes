@@ -69,6 +69,9 @@
 *.arrow filter=lfs diff=lfs merge=lfs -text
 *.orc filter=lfs diff=lfs merge=lfs -text
 
+# WASM files
+*.wasm filter=lfs diff=lfs merge=lfs -text
+
 # Exclude files from language stats (GitHub Linguist)
 *.ipynb linguist-vendored
 Makefile linguist-vendored
