@@ -4,12 +4,12 @@
  * Handles file parsing for GeoJSON, Shapefile, and Parquet formats.
  */
 
-import { App } from '../app.js';
-import { hideLoading, showError, showLoading } from './ui.js';
-import { transformCRS } from './crs.js';
-import { analyzeColumns } from './visualization.js';
-import { renderData } from './map.js';
-import { registerInDuckDB } from './duckdb.js';
+import {App} from '../app.js';
+import {hideLoading, showError, showLoading} from './ui.js';
+import {transformCRS} from './crs.js';
+import {analyzeColumns} from './visualization.js';
+import {renderData} from './map.js';
+import {registerInDuckDB} from './duckdb.js';
 
 // ============================================
 // File Handler
@@ -202,7 +202,7 @@ export async function loadGeoJSON(geojson, filename) {
 
   // Normalize to FeatureCollection
   if (geojson.type === 'Feature') {
-    geojson = { type: 'FeatureCollection', features: [geojson] };
+    geojson = {type: 'FeatureCollection', features: [geojson]};
   } else if (geojson.type !== 'FeatureCollection') {
     throw new Error('Invalid GeoJSON: Expected Feature or FeatureCollection');
   }

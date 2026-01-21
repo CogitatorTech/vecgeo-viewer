@@ -2,6 +2,10 @@
 
 A simple web-based vector geospatial dataset viewer powered by DuckDB-WASM.
 
+VecGeo Viewer is a lightweight single-page web application (or SPA) that does not need any backend services.
+Everything is more or less done in the web browser including loading the datasets and rendering the maps.
+Handling the data is done using DuckDB-WASM, and the visualization is done using Leaflet JavaScript library.
+
 ![light_mode_v0.2.0.png](assets/images/screenshots/light_mode_v0.2.0.jpeg)
 
 > [!NOTE]
@@ -31,7 +35,7 @@ Visit the live app: [VecGeo Viewer](https://cogitatortech.github.io/vecgeo-viewe
 You can also run the application using the pre-built Docker image:
 
 ```bash
-docker run -d -p 8080:80 ghcr.io/cogitatortech/vecgeo-viewer:latest
+docker run -d -p 8080:80 --rm ghcr.io/cogitatortech/vecgeo-viewer:latest
 ```
 
 Then open http://localhost:8080 in your browser.

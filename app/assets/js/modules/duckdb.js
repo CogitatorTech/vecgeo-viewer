@@ -4,10 +4,10 @@
  * Handles DuckDB WASM initialization, data registration, and SQL queries.
  */
 
-import { App } from '../app.js';
-import { hideLoading, showError, showLoading } from './ui.js';
-import { analyzeColumns } from './visualization.js';
-import { renderData } from './map.js';
+import {App} from '../app.js';
+import {hideLoading, showError, showLoading} from './ui.js';
+import {analyzeColumns} from './visualization.js';
+import {renderData} from './map.js';
 
 // ============================================
 // WASM Bundle Configuration
@@ -45,7 +45,7 @@ export async function initDuckDB() {
   }
 
   try {
-    const { selectBundle, ConsoleLogger, AsyncDuckDB } = window.duckdb;
+    const {selectBundle, ConsoleLogger, AsyncDuckDB} = window.duckdb;
 
     // Select the best bundle for this browser
     const bundle = await selectBundle(DUCKDB_BUNDLES);
@@ -66,7 +66,7 @@ export async function initDuckDB() {
     // Try CDN fallback
     try {
       console.log('[DuckDB] Trying CDN fallback...');
-      const { selectBundle, ConsoleLogger, AsyncDuckDB } = window.duckdb;
+      const {selectBundle, ConsoleLogger, AsyncDuckDB} = window.duckdb;
 
       const cdnBundle = {
         mvp: {
@@ -362,7 +362,7 @@ export function exportData() {
   const dataStr = JSON.stringify(App.currentData, null, 2);
 
   // Create blob and download link
-  const blob = new Blob([dataStr], { type: 'application/geo+json' });
+  const blob = new Blob([dataStr], {type: 'application/geo+json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

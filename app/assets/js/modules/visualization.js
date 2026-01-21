@@ -4,7 +4,7 @@
  * Handles color scales, column analysis, legend, and visualization settings.
  */
 
-import { App } from '../app.js';
+import {App} from '../app.js';
 
 // ============================================
 // Custom Colormap Definitions
@@ -262,10 +262,10 @@ export function updateStatus(geojson) {
   // as browser heap size (Chrome) is global and lazy-collected.
   const estimatedMem = estimateDataMemory(geojson);
   if (estimatedMem > 0 && memoryUsageEl) {
-    memoryUsageEl.textContent = `Mem: ~${estimatedMem.toFixed(1)} MB`;
+    memoryUsageEl.textContent = `Memory Usage: ~${estimatedMem.toFixed(1)} MB`;
     memoryUsageEl.title = "Estimated RAM usage of current data (JSON + Object overhead)";
   } else if (memoryUsageEl) {
-    memoryUsageEl.textContent = 'Mem: N/A';
+    memoryUsageEl.textContent = 'Memory Usage: N/A';
   }
 }
 

@@ -11,31 +11,31 @@
 // Module Imports
 // ============================================
 
-import { initMap, renderData, resetView, setBasemap, toggleBasemap } from './modules/map.js';
-import { exportData, initDuckDB, resetFilter, runSQL } from './modules/duckdb.js';
-import { handleFile } from './modules/parsers.js';
-import { analyzeColumns, cycleColormap, cycleColumn, setColormap, setColumn } from './modules/visualization.js';
+import {initMap, renderData, resetView, setBasemap, toggleBasemap} from './modules/map.js';
+import {exportData, initDuckDB, resetFilter, runSQL} from './modules/duckdb.js';
+import {handleFile} from './modules/parsers.js';
+import {analyzeColumns, cycleColormap, cycleColumn, setColormap, setColumn} from './modules/visualization.js';
 import {
-    dataTableNextPage,
-    dataTablePrevPage,
-    filterDataTable,
-    hideDataViewer,
-    setDataTablePageSize,
-    showDataViewer,
-    sortDataTable
+  dataTableNextPage,
+  dataTablePrevPage,
+  filterDataTable,
+  hideDataViewer,
+  setDataTablePageSize,
+  showDataViewer,
+  sortDataTable
 } from './modules/data-viewer.js';
 import {
-    bindToWindow,
-    handleModalClick,
-    hideError,
-    initDragAndDrop,
-    initFileInput,
-    initKeyboardShortcuts,
-    initResizeHandler, // Import resize handler
-    restoreTheme,
-    showError,
-    toggleHelp,
-    toggleTheme
+  bindToWindow,
+  handleModalClick,
+  hideError,
+  initDragAndDrop,
+  initFileInput,
+  initKeyboardShortcuts,
+  initResizeHandler,
+  restoreTheme,
+  showError,
+  toggleHelp,
+  toggleTheme
 } from './modules/ui.js';
 
 // ============================================
@@ -43,51 +43,51 @@ import {
 // ============================================
 
 export const App = {
-    // Leaflet map instance
-    map: null,
+  // Leaflet map instance
+  map: null,
 
-    // Current GeoJSON layer
-    geoJsonLayer: null,
+  // Current GeoJSON layer
+  geoJsonLayer: null,
 
-    // Basemap tile layer
-    basemapLayer: null,
+  // Basemap tile layer
+  basemapLayer: null,
 
-    // DuckDB instance
-    db: null,
-    conn: null,
+  // DuckDB instance
+  db: null,
+  conn: null,
 
-    // Loaded data
-    originalData: null,      // Original GeoJSON data
-    currentData: null,       // Filtered/transformed data
+  // Loaded data
+  originalData: null,      // Original GeoJSON data
+  currentData: null,       // Filtered/transformed data
 
-    // Column info
-    columns: [],             // All column names
-    numericColumns: [],      // Numeric column names
-    categoricalColumns: [],  // Categorical column names
-    currentColumn: null,     // Currently selected column
-    columnIndex: 0,          // Index for cycling columns
+  // Column info
+  columns: [],             // All column names
+  numericColumns: [],      // Numeric column names
+  categoricalColumns: [],  // Categorical column names
+  currentColumn: null,     // Currently selected column
+  columnIndex: 0,          // Index for cycling columns
 
-    // Color settings
-    colormaps: ['viridis', 'plasma', 'turbo', 'cividis', 'spectral', 'blues', 'reds'],
-    currentColormap: 'viridis',
-    colormapIndex: 0,
-    colorScale: null,
+  // Color settings
+  colormaps: ['viridis', 'plasma', 'turbo', 'cividis', 'spectral', 'blues', 'reds'],
+  currentColormap: 'viridis',
+  colormapIndex: 0,
+  colorScale: null,
 
-    // Feature bounds
-    dataBounds: null,
+  // Feature bounds
+  dataBounds: null,
 
-    // Rendering settings
-    featureLimit: 100000,     // Max features to load (0 = no limit)
-    simplifyTolerance: 0.001, // Geometry simplification tolerance (0 = off)
-    pointRadius: 6,           // Point marker radius in pixels
+  // Rendering settings
+  featureLimit: 100000,     // Max features to load (0 = no limit)
+  simplifyTolerance: 0.001, // Geometry simplification tolerance (0 = off)
+  pointRadius: 6,           // Point marker radius in pixels
 
-    // State flags
-    basemapVisible: true,
-    currentBasemap: 'dark',
-    isLoading: false,
+  // State flags
+  basemapVisible: true,
+  currentBasemap: 'dark',
+  isLoading: false,
 
-    // Stats
-    fileSize: null,
+  // Stats
+  fileSize: null,
 };
 
 // ============================================
@@ -117,81 +117,81 @@ App.setDataTablePageSize = setDataTablePageSize;
 
 // Rendering settings methods
 App.setFeatureLimit = (value) => {
-    const oldLimit = App.featureLimit;
-    App.featureLimit = parseInt(value, 10) || 0;
-    const featureLimitInput = document.getElementById('featureLimitInput');
-    const featureLimitStatus = document.getElementById('featureLimitStatus');
+  const oldLimit = App.featureLimit;
+  App.featureLimit = parseInt(value, 10) || 0;
+  const featureLimitInput = document.getElementById('featureLimitInput');
+  const featureLimitStatus = document.getElementById('featureLimitStatus');
 
-    if (featureLimitInput) {
-        featureLimitInput.value = App.featureLimit;
-    }
+  if (featureLimitInput) {
+    featureLimitInput.value = App.featureLimit;
+  }
 
-    console.log(`[Settings] Feature limit: ${App.featureLimit || 'no limit'}`);
+  console.log(`[Settings] Feature limit: ${App.featureLimit || 'no limit'}`);
 
-    // If data is loaded and limit changed, re-apply the limit
-    if (App.originalData && oldLimit !== App.featureLimit) {
-        const originalCount = App.originalData.features.length;
+  // If data is loaded and limit changed, re-apply the limit
+  if (App.originalData && oldLimit !== App.featureLimit) {
+    const originalCount = App.originalData.features.length;
 
-        // Apply the new limit
-        let limitedData;
-        if (App.featureLimit > 0 && originalCount > App.featureLimit) {
-            limitedData = {
-                type: 'FeatureCollection',
-                features: App.originalData.features.slice(0, App.featureLimit)
-            };
-            console.log(`[Settings] Re-limited from ${originalCount} to ${App.featureLimit} objects`);
-            showError(`Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()} objects. Adjust limit in Performance Settings.`);
+    // Apply the new limit
+    let limitedData;
+    if (App.featureLimit > 0 && originalCount > App.featureLimit) {
+      limitedData = {
+        type: 'FeatureCollection',
+        features: App.originalData.features.slice(0, App.featureLimit)
+      };
+      console.log(`[Settings] Re-limited from ${originalCount} to ${App.featureLimit} objects`);
+      showError(`Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()} objects. Adjust limit in Performance Settings.`);
 
-            if (featureLimitStatus) {
-                featureLimitStatus.textContent = `Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()}`;
-                featureLimitStatus.style.color = 'var(--accent-warning, orange)';
-            }
-        } else {
-            limitedData = App.originalData;
-            if (originalCount > 0) {
-                console.log(`[Settings] Showing all ${originalCount} objects`);
-                if (featureLimitStatus) {
-                    featureLimitStatus.textContent = `Showing all ${originalCount.toLocaleString()} objects`;
-                    featureLimitStatus.style.color = 'var(--text-muted)';
-                }
-            }
+      if (featureLimitStatus) {
+        featureLimitStatus.textContent = `Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()}`;
+        featureLimitStatus.style.color = 'var(--accent-warning, orange)';
+      }
+    } else {
+      limitedData = App.originalData;
+      if (originalCount > 0) {
+        console.log(`[Settings] Showing all ${originalCount} objects`);
+        if (featureLimitStatus) {
+          featureLimitStatus.textContent = `Showing all ${originalCount.toLocaleString()} objects`;
+          featureLimitStatus.style.color = 'var(--text-muted)';
         }
-
-        // Update current data and re-render
-        App.currentData = limitedData;
-        analyzeColumns(App.currentData);
-        renderData(App.currentData);
-    } else if (!App.originalData && featureLimitStatus) {
-        // No data loaded yet, show default message
-        featureLimitStatus.textContent = '0 = no limit';
-        featureLimitStatus.style.color = 'var(--text-muted)';
+      }
     }
+
+    // Update current data and re-render
+    App.currentData = limitedData;
+    analyzeColumns(App.currentData);
+    renderData(App.currentData);
+  } else if (!App.originalData && featureLimitStatus) {
+    // No data loaded yet, show default message
+    featureLimitStatus.textContent = '0 = no limit';
+    featureLimitStatus.style.color = 'var(--text-muted)';
+  }
 };
 
 App.setSimplifyTolerance = (value) => {
-    App.simplifyTolerance = parseFloat(value) || 0;
-    const simplifyValue = document.getElementById('simplifyValue');
-    if (simplifyValue) {
-        simplifyValue.textContent = App.simplifyTolerance.toFixed(3);
-    }
-    // Re-render if we have data
-    if (App.currentData) {
-        renderData(App.currentData, true);
-    }
-    console.log(`[Settings] Simplify tolerance: ${App.simplifyTolerance}`);
+  App.simplifyTolerance = parseFloat(value) || 0;
+  const simplifyValue = document.getElementById('simplifyValue');
+  if (simplifyValue) {
+    simplifyValue.textContent = App.simplifyTolerance.toFixed(3);
+  }
+  // Re-render if we have data
+  if (App.currentData) {
+    renderData(App.currentData, true);
+  }
+  console.log(`[Settings] Simplify tolerance: ${App.simplifyTolerance}`);
 };
 
 App.setPointRadius = (value) => {
-    App.pointRadius = parseInt(value, 10) || 6;
-    const pointSizeValue = document.getElementById('pointSizeValue');
-    if (pointSizeValue) {
-        pointSizeValue.textContent = `${App.pointRadius}px`;
-    }
-    // Re-render if we have data
-    if (App.currentData) {
-        renderData(App.currentData, true);
-    }
-    console.log(`[Settings] Point radius: ${App.pointRadius}px`);
+  App.pointRadius = parseInt(value, 10) || 6;
+  const pointSizeValue = document.getElementById('pointSizeValue');
+  if (pointSizeValue) {
+    pointSizeValue.textContent = `${App.pointRadius}px`;
+  }
+  // Re-render if we have data
+  if (App.currentData) {
+    renderData(App.currentData, true);
+  }
+  console.log(`[Settings] Point radius: ${App.pointRadius}px`);
 };
 
 // ============================================
@@ -199,27 +199,27 @@ App.setPointRadius = (value) => {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Initialize map
-    initMap();
+  // Initialize map
+  initMap();
 
-    // Initialize UI event handlers
-    initDragAndDrop(handleFile);
-    initFileInput(handleFile);
-    initKeyboardShortcuts();
-    initResizeHandler(); // Initialize resize handler
-    restoreTheme();
+  // Initialize UI event handlers
+  initDragAndDrop(handleFile);
+  initFileInput(handleFile);
+  initKeyboardShortcuts();
+  initResizeHandler(); // Initialize resize handler
+  restoreTheme();
 
-    // Wire error banner close button
-    const closeBtn = document.getElementById('errorCloseBtn');
-    if (closeBtn) closeBtn.addEventListener('click', hideError);
+  // Wire error banner close button
+  const closeBtn = document.getElementById('errorCloseBtn');
+  if (closeBtn) closeBtn.addEventListener('click', hideError);
 
-    // Initialize DuckDB
-    await initDuckDB();
+  // Initialize DuckDB
+  await initDuckDB();
 
-    // Bind UI functions to window for inline handlers
-    bindToWindow();
+  // Bind UI functions to window for inline handlers
+  bindToWindow();
 
-    console.log('[VecGeo Viewer] Initialized');
+  console.log('[VecGeo Viewer] Initialized');
 });
 
 // ============================================

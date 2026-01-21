@@ -4,8 +4,8 @@
  * Handles map initialization, rendering, basemaps, and view controls.
  */
 
-import { App } from '../app.js';
-import { createColorScale, updateLegend, updateStatus } from './visualization.js';
+import {App} from '../app.js';
+import {createColorScale, updateLegend, updateStatus} from './visualization.js';
 
 // ============================================
 // Basemap Definitions
@@ -186,7 +186,7 @@ export function renderData(geojson, preserveView = false) {
     const bounds = App.geoJsonLayer.getBounds();
     if (bounds.isValid()) {
       App.dataBounds = bounds;
-      App.map.fitBounds(bounds, { padding: [20, 20] });
+      App.map.fitBounds(bounds, {padding: [20, 20]});
     }
   }
 
@@ -259,7 +259,7 @@ export function toggleBasemap() {
  */
 export function resetView() {
   if (App.dataBounds) {
-    App.map.fitBounds(App.dataBounds, { padding: [20, 20] });
+    App.map.fitBounds(App.dataBounds, {padding: [20, 20]});
   }
   console.log('[View] Reset');
 }

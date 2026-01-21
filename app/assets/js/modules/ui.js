@@ -4,7 +4,7 @@
  * Handles UI helpers, theme, modals, and event handlers.
  */
 
-import { App } from '../app.js';
+import {App} from '../app.js';
 
 // ============================================
 // Loading & Error UI
