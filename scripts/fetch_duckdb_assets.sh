@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DUCKDB_VER="1.28.0"
+DUCKDB_VER="1.31.0"
 ARROW_VER="14.0.2"
 VENDOR_DUCKDB="$ROOT_DIR/app/assets/vendor/duckdb"
 VENDOR_ARROW="$ROOT_DIR/app/assets/vendor/arrow"

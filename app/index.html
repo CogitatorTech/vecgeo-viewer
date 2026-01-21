@@ -402,22 +402,28 @@ SELECT *, pop/area AS density FROM data</code></pre>
 
 <!-- DuckDB WASM - ESM with global assignment -->
 <script type="module">
-  try {
-    // Try local file first
-    const duckdbModule = await import('./assets/vendor/duckdb/duckdb-browser.mjs');
-    window.duckdb = duckdbModule;
-    console.log('[DuckDB] Loaded local module');
-  } catch (e) {
-    console.warn('[DuckDB] Local module failed, trying CDN:', e);
-    try {
-      // Fallback to CDN
-      const duckdbModule = await import('https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-browser.mjs');
-      window.duckdb = duckdbModule;
-      console.log('[DuckDB] Loaded CDN module');
-    } catch (e2) {
-      console.error('[DuckDB] Failed to load from both local and CDN:', e2);
+  // Set up a promise that app.js can await
+  window.duckdbReady = (async () => {
+    // Prefer local first (to avoid CORS issues with workers), CDN as fallback
+    const sources = [
+      {name: 'local', url: './assets/vendor/duckdb/duckdb-browser.mjs'},
+      {name: 'CDN', url: 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.31.0/dist/duckdb-browser.mjs'}
+    ];
+
+    for (const source of sources) {
+      try {
+        const duckdbModule = await import(source.url);
+        window.duckdb = duckdbModule;
+        console.log(`[DuckDB] Loaded ${source.name} module`);
+        return true; // Success
+      } catch (e) {
+        console.warn(`[DuckDB] ${source.name} module failed:`, e.message);
+      }
     }
-  }
+
+    console.error('[DuckDB] Failed to load from all sources');
+    return false;
+  })();
 </script>
 
 <!-- App (ES Module) -->
