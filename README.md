@@ -2,6 +2,8 @@
 
 A simple web-based vector geospatial dataset viewer powered by DuckDB-WASM.
 
+![light_mode_v0.2.0.png](assets/images/screenshots/light_mode_v0.2.0.jpeg)
+
 > [!NOTE]
 > Report bugs and feature requests on the [issues page](https://github.com/CogitatorTech/vecgeo-viewer/issues).
 
