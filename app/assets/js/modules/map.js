@@ -101,6 +101,15 @@ export function renderData(geojson, preserveView = false) {
   // Remove existing layer
   if (App.geoJsonLayer) {
     App.map.removeLayer(App.geoJsonLayer);
+    App.geoJsonLayer = null;
+  }
+
+  // Validate geojson
+  if (!geojson || !geojson.features || geojson.features.length === 0) {
+    console.warn('[Map] No features to render');
+    updateStatus(geojson);
+    updateLegend();
+    return;
   }
 
   // Create color scale
@@ -186,7 +195,11 @@ export function renderData(geojson, preserveView = false) {
     const bounds = App.geoJsonLayer.getBounds();
     if (bounds.isValid()) {
       App.dataBounds = bounds;
-      App.map.fitBounds(bounds, {padding: [20, 20]});
+      // Use maxZoom to prevent zooming too far in on small result sets
+      App.map.fitBounds(bounds, {
+        padding: [50, 50],
+        maxZoom: 16
+      });
     }
   }
 
@@ -258,8 +271,8 @@ export function toggleBasemap() {
  * Reset view to fit data
  */
 export function resetView() {
-  if (App.dataBounds) {
+  if (App.dataBounds && App.map) {
     App.map.fitBounds(App.dataBounds, {padding: [20, 20]});
+    console.log('[View] Reset');
   }
-  console.log('[View] Reset');
 }

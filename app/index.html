@@ -109,7 +109,8 @@
         <div class="control-group">
           <label for="featureLimitInput">Object Limit</label>
           <div class="range-with-value">
-            <input id="featureLimitInput" max="1000000" min="0" onchange="App.setFeatureLimit(this.value)" step="10000" type="number"
+            <input id="featureLimitInput" max="1000000" min="0" onchange="App.setFeatureLimit(this.value)" step="10000"
+                   type="number"
                    value="100000">
             <small id="featureLimitStatus">0 = no limit</small>
           </div>
@@ -118,7 +119,8 @@
         <div class="control-group">
           <label for="simplifyInput">Simplify Tolerance</label>
           <div class="range-with-value">
-            <input id="simplifyInput" max="0.1" min="0" oninput="App.setSimplifyTolerance(this.value)" step="0.001" type="range"
+            <input id="simplifyInput" max="0.1" min="0" oninput="App.setSimplifyTolerance(this.value)" step="0.001"
+                   type="range"
                    value="0.001">
             <span id="simplifyValue">0.001</span>
           </div>
@@ -339,7 +341,7 @@ SELECT *, pop/area AS density FROM data</code></pre>
       </div>
     </div>
     <div class="modal-footer">
-      <p>VecGeo Viewer v0.2.1</p>
+      <p>VecGeo Viewer v0.3.0</p>
     </div>
   </div>
 </div>

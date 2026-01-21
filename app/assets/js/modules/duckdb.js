@@ -265,7 +265,8 @@ export async function registerInDuckDB(geojson) {
       const end = Math.min(i + batchSize, features.length);
       const batch = features.slice(i, end);
       const valuesSQL = buildValuesSQL(batch, i);
-      const insertSQL = `INSERT INTO data (${insertCols.join(', ')}) VALUES ${valuesSQL}`;
+      const insertSQL = `INSERT INTO data (${insertCols.join(', ')})
+                         VALUES ${valuesSQL}`;
 
       try {
         await App.conn.query(insertSQL);
@@ -286,12 +287,17 @@ export async function registerInDuckDB(geojson) {
 
     console.log(`[DuckDB] Registered ${features.length} features`);
 
-    // Sanity check that row ids match feature count
+    // Sanity check that row count matches feature count
     try {
       const stats = await App.conn.query('SELECT COUNT(*) AS cnt, MAX(_rowid) AS max_id FROM data');
       const row = stats.toArray()[0];
-      if (row && row.max_id >= features.length) {
-        console.warn('[DuckDB] _rowid exceeds feature count; SQL filters may be unreliable.');
+      const expectedMaxId = features.length - 1;
+      if (row) {
+        const actualCount = Number(row.cnt);
+        const actualMaxId = Number(row.max_id);
+        if (actualCount !== features.length || actualMaxId !== expectedMaxId) {
+          console.warn(`[DuckDB] Data mismatch: expected ${features.length} rows (max_id=${expectedMaxId}), got ${actualCount} rows (max_id=${actualMaxId})`);
+        }
       }
     } catch (statsErr) {
       console.warn('[DuckDB] Could not run sanity check:', statsErr);
@@ -410,18 +416,21 @@ export async function runSQL() {
 }
 
 /**
- * Reset filter and show all data
+ * Reset view to fit current data (zoom/pan to show all current features)
  */
 export function resetFilter() {
-  if (App.originalData) {
-    App.currentData = App.originalData;
-    analyzeColumns(App.currentData);
-    renderData(App.currentData);
-    const sqlInput = document.getElementById('sqlInput');
-    if (sqlInput) {
-      sqlInput.value = '';
-    }
-    console.log('[Filter] Reset');
+  if (!App.currentData || !App.map || !App.geoJsonLayer) {
+    console.warn('[View] Cannot reset focus - no data or map layer');
+    return;
+  }
+
+  const bounds = App.geoJsonLayer.getBounds();
+  if (bounds && bounds.isValid()) {
+    App.map.fitBounds(bounds, {
+      padding: [50, 50],
+      maxZoom: 16
+    });
+    console.log('[View] Reset focus to current data');
   }
 }
 

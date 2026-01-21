@@ -10,6 +10,8 @@ import {App} from '../app.js';
 // Loading & Error UI
 // ============================================
 
+let errorBannerTimeout = null;
+
 export function showLoading(message = 'Loading...') {
   App.isLoading = true;
   const loadingOverlay = document.getElementById('loadingOverlay');
@@ -36,12 +38,39 @@ export function showError(message) {
   if (banner && msgEl) {
     msgEl.textContent = message;
     banner.classList.remove('hidden');
+    banner.classList.remove('warning');
+    // Clear any previous timeout
+    if (errorBannerTimeout) {
+      clearTimeout(errorBannerTimeout);
+    }
     // Auto-hide after 10 seconds
-    setTimeout(() => {
+    errorBannerTimeout = setTimeout(() => {
       banner.classList.add('hidden');
     }, 10000);
   }
   console.error('[Error]', message);
+}
+
+/**
+ * Show a warning/info message (not an error)
+ */
+export function showWarning(message) {
+  const banner = document.getElementById('errorBanner');
+  const msgEl = document.getElementById('errorMessage');
+  if (banner && msgEl) {
+    msgEl.textContent = message;
+    banner.classList.remove('hidden');
+    banner.classList.add('warning');
+    // Clear any previous timeout
+    if (errorBannerTimeout) {
+      clearTimeout(errorBannerTimeout);
+    }
+    // Auto-hide after 8 seconds
+    errorBannerTimeout = setTimeout(() => {
+      banner.classList.add('hidden');
+    }, 8000);
+  }
+  console.log('[Info]', message);
 }
 
 export function hideError() {

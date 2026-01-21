@@ -73,8 +73,13 @@ export function hideDataViewer() {
  * Build data table from current data
  */
 export function buildDataTable() {
+  if (!App.currentData || !App.currentData.features) {
+    console.warn('[DataViewer] No data available to build table');
+    return;
+  }
+
   const features = App.currentData.features;
-  const columns = App.columns;
+  const columns = App.columns || [];
 
   // Apply search filter
   let filteredFeatures = features;

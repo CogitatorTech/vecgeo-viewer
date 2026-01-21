@@ -5,7 +5,7 @@
  */
 
 import {App} from '../app.js';
-import {hideLoading, showError, showLoading} from './ui.js';
+import {hideLoading, showError, showLoading, showWarning} from './ui.js';
 import {transformCRS} from './crs.js';
 import {analyzeColumns} from './visualization.js';
 import {renderData} from './map.js';
@@ -109,7 +109,7 @@ async function parseShapefile(file) {
  * @returns {Object} GeoJSON FeatureCollection
  */
 async function parseParquet(file) {
-  if (!App.conn) {
+  if (!App.db || !App.conn) {
     throw new Error('DuckDB is not initialized. Cannot read Parquet files.');
   }
 
@@ -135,15 +135,8 @@ async function parseParquet(file) {
   }
 
   // Query data
-  let sql;
-  if (geometryCol) {
-    // Has geometry - use spatial extension hint
-    sql = `SELECT *
-           FROM parquet_scan('${file.name}')`;
-  } else {
-    sql = `SELECT *
-           FROM parquet_scan('${file.name}')`;
-  }
+  const sql = `SELECT *
+               FROM parquet_scan('${file.name}')`;
 
   const result = await App.conn.query(sql);
   const rows = result.toArray();
@@ -220,7 +213,7 @@ export async function loadGeoJSON(geojson, filename) {
       features: geojson.features.slice(0, App.featureLimit)
     };
     console.log(`[Loader] Limited from ${originalCount} to ${App.featureLimit} objects`);
-    showError(`Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()} objects. Adjust limit in Performance Settings.`);
+    showWarning(`Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()} objects. Adjust limit in Performance Settings.`);
 
     // Update status display
     const featureLimitStatus = document.getElementById('featureLimitStatus');

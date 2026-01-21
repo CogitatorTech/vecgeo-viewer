@@ -80,10 +80,19 @@ export function analyzeColumns(geojson) {
  */
 export function updateColumnSelector() {
   const select = document.getElementById('columnSelect');
+  if (!select) return;
 
-  // Clear existing options except the first placeholder
-  while (select.options.length > 1) {
-    select.remove(1);
+  // Clear ALL children (options AND optgroups) except the first placeholder option
+  const placeholder = select.querySelector('option[value=""]');
+  select.innerHTML = '';
+  if (placeholder) {
+    select.appendChild(placeholder);
+  } else {
+    // Recreate placeholder if it was lost
+    const newPlaceholder = document.createElement('option');
+    newPlaceholder.value = '';
+    newPlaceholder.textContent = '-- Select column --';
+    select.appendChild(newPlaceholder);
   }
 
   // Add numeric columns

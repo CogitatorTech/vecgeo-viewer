@@ -33,7 +33,7 @@ import {
   initKeyboardShortcuts,
   initResizeHandler,
   restoreTheme,
-  showError,
+  showWarning,
   toggleHelp,
   toggleTheme
 } from './modules/ui.js';
@@ -129,7 +129,7 @@ App.setFeatureLimit = (value) => {
   console.log(`[Settings] Feature limit: ${App.featureLimit || 'no limit'}`);
 
   // If data is loaded and limit changed, re-apply the limit
-  if (App.originalData && oldLimit !== App.featureLimit) {
+  if (App.originalData?.features && oldLimit !== App.featureLimit) {
     const originalCount = App.originalData.features.length;
 
     // Apply the new limit
@@ -140,7 +140,7 @@ App.setFeatureLimit = (value) => {
         features: App.originalData.features.slice(0, App.featureLimit)
       };
       console.log(`[Settings] Re-limited from ${originalCount} to ${App.featureLimit} objects`);
-      showError(`Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()} objects. Adjust limit in Performance Settings.`);
+      showWarning(`Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()} objects. Adjust limit in Performance Settings.`);
 
       if (featureLimitStatus) {
         featureLimitStatus.textContent = `Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()}`;
