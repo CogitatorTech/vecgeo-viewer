@@ -96,7 +96,28 @@
   overflow-y: auto;
   flex-shrink: 0;
   z-index: 50;
-  transition: transform var(--transition-normal);
+  z-index: 50;
+  transition: transform var(--transition-normal); /* only transform, not width */
+  position: relative;
+}
+
+/* Resize Handle */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 100;
+  background: transparent;
+  transition: background var(--transition-fast);
+}
+
+.resize-handle:hover,
+.resize-handle.active {
+  background: var(--accent-primary);
+  opacity: 0.5;
 }
 
 /* Custom scrollbar for panel */

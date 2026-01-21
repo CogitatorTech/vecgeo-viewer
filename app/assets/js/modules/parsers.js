@@ -21,7 +21,9 @@ import { registerInDuckDB } from './duckdb.js';
  */
 export async function handleFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
-  const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.'));
+
+  // Store file size
+  App.fileSize = file.size;
 
   showLoading(`Loading ${file.name}...`);
 
@@ -80,8 +82,7 @@ async function parseGeoJSON(file) {
   const geojson = JSON.parse(text);
 
   // Check if transformation is needed
-  const transformedGeoJSON = await transformCRS(geojson);
-  return transformedGeoJSON;
+  return await transformCRS(geojson);
 }
 
 // ============================================
@@ -206,36 +207,67 @@ export async function loadGeoJSON(geojson, filename) {
     throw new Error('Invalid GeoJSON: Expected Feature or FeatureCollection');
   }
 
-  // Apply feature limit
+  // Store FULL original data BEFORE applying limit
+  App.originalData = geojson;
+
+  // Apply feature limit to create current data
   const originalCount = geojson.features.length;
+  let currentData;
+
   if (App.featureLimit > 0 && originalCount > App.featureLimit) {
-    geojson = {
+    currentData = {
       type: 'FeatureCollection',
       features: geojson.features.slice(0, App.featureLimit)
     };
     console.log(`[Loader] Limited from ${originalCount} to ${App.featureLimit} objects`);
     showError(`Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()} objects. Adjust limit in Performance Settings.`);
+
+    // Update status display
+    const featureLimitStatus = document.getElementById('featureLimitStatus');
+    if (featureLimitStatus) {
+      featureLimitStatus.textContent = `Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()}`;
+      featureLimitStatus.style.color = 'var(--accent-warning, orange)';
+    }
+  } else {
+    currentData = geojson;
+
+    // Update status display
+    const featureLimitStatus = document.getElementById('featureLimitStatus');
+    if (featureLimitStatus && originalCount > 0) {
+      featureLimitStatus.textContent = `Showing all ${originalCount.toLocaleString()} objects`;
+      featureLimitStatus.style.color = 'var(--text-muted)';
+    }
   }
 
-  // Store original data
-  App.originalData = geojson;
-  App.currentData = geojson;
+  App.currentData = currentData;
 
   // Analyze columns
-  analyzeColumns(geojson);
+  analyzeColumns(currentData);
 
-  // Register data in DuckDB for SQL queries
-  await registerInDuckDB(geojson);
+  // Register FULL original data in DuckDB for SQL queries (so SQL can access all rows)
+  await registerInDuckDB(App.originalData);
 
-  // Add to map
-  renderData(geojson);
+  // Add CURRENT (limited) data to map
+  renderData(currentData);
 
   // Show controls
-  document.getElementById('dataControls').style.display = 'block';
-  document.getElementById('visualizationControls').style.display = 'block';
-  document.getElementById('quickFilterSection').style.display = 'block';
-  document.getElementById('sqlSection').style.display = 'block';
-  document.getElementById('welcomeOverlay').classList.add('hidden');
+  const dataControls = document.getElementById('dataControls');
+  const visualizationControls = document.getElementById('visualizationControls');
+  const sqlSection = document.getElementById('sqlSection');
+  const welcomeOverlay = document.getElementById('welcomeOverlay');
+
+  if (dataControls) {
+    dataControls.style.display = 'block';
+  }
+  if (visualizationControls) {
+    visualizationControls.style.display = 'block';
+  }
+  if (sqlSection) {
+    sqlSection.style.display = 'block';
+  }
+  if (welcomeOverlay) {
+    welcomeOverlay.classList.add('hidden');
+  }
 
   // Auto-select first numeric column for coloring
   if (App.numericColumns.length > 0) {
@@ -245,5 +277,11 @@ export async function loadGeoJSON(geojson, filename) {
   }
 
   hideLoading();
-  console.log(`[VecGeo Viewer] Loaded ${geojson.features.length} objects from ${filename}`);
+  const displayedCount = currentData.features.length;
+  const totalCount = App.originalData.features.length;
+  if (displayedCount < totalCount) {
+    console.log(`[VecGeo Viewer] Loaded ${totalCount} objects from ${filename}, displaying ${displayedCount}`);
+  } else {
+    console.log(`[VecGeo Viewer] Loaded ${totalCount} objects from ${filename}`);
+  }
 }

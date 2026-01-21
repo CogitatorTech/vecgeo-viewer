@@ -4,7 +4,7 @@
  * Handles UI helpers, theme, modals, and event handlers.
  */
 
-import {App} from '../app.js';
+import { App } from '../app.js';
 
 // ============================================
 // Loading & Error UI
@@ -12,13 +12,22 @@ import {App} from '../app.js';
 
 export function showLoading(message = 'Loading...') {
   App.isLoading = true;
-  document.getElementById('loadingOverlay').classList.remove('hidden');
-  document.getElementById('loadingText').textContent = message;
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
+  if (loadingOverlay) {
+    loadingOverlay.classList.remove('hidden');
+  }
+  if (loadingText) {
+    loadingText.textContent = message;
+  }
 }
 
 export function hideLoading() {
   App.isLoading = false;
-  document.getElementById('loadingOverlay').classList.add('hidden');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  if (loadingOverlay) {
+    loadingOverlay.classList.add('hidden');
+  }
 }
 
 export function showError(message) {
@@ -46,7 +55,9 @@ export function hideError() {
 
 export function toggleHelp() {
   const modal = document.getElementById('helpModal');
-  modal.classList.toggle('active');
+  if (modal) {
+    modal.classList.toggle('active');
+  }
 }
 
 export function handleModalClick(event) {
@@ -94,6 +105,7 @@ export function updateBasemapTheme(theme) {
 
 export function initDragAndDrop(handleFile) {
   const dropOverlay = document.getElementById('dropOverlay');
+  if (!dropOverlay) return;
 
   // Prevent default drag behaviors
   ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -135,6 +147,8 @@ export function initDragAndDrop(handleFile) {
 
 export function initFileInput(handleFile) {
   const fileInput = document.getElementById('fileInput');
+  if (!fileInput) return;
+
   fileInput.addEventListener('change', (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -229,4 +243,49 @@ export function bindToWindow() {
   window.toggleHelp = toggleHelp;
   window.handleModalClick = handleModalClick;
   window.toggleTheme = toggleTheme;
+}
+
+// ============================================
+// Panel Resizing
+// ============================================
+
+export function initResizeHandler() {
+  const handle = document.getElementById('resizeHandle');
+  const panel = document.getElementById('controlPanel');
+  if (!handle || !panel) return;
+
+  let isResizing = false;
+
+  handle.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    handle.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none'; // Prevent text selection
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+
+    // Calculate new width
+    const newWidth = e.clientX;
+
+    // Constraints (min 200px, max 600px)
+    if (newWidth >= 200 && newWidth <= 600) {
+      document.documentElement.style.setProperty('--panel-width', `${newWidth}px`);
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isResizing) {
+      isResizing = false;
+      handle.classList.remove('active');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+
+      // Trigger map resize to fill new space
+      if (App.map) {
+        App.map.invalidateSize();
+      }
+    }
+  });
 }

@@ -72,6 +72,20 @@ export function initMap() {
   App.basemapLayer.addTo(App.map);
 
   console.log('[Map] Initialized');
+
+  // Update zoom display
+  const updateZoom = () => {
+    const zoom = App.map.getZoom();
+    const maxZoom = App.map.getMaxZoom() || 20;
+    const percentage = Math.round((zoom / maxZoom) * 100);
+    const zoomEl = document.getElementById('zoomLevel');
+    if (zoomEl) {
+      zoomEl.textContent = `Zoom: ${percentage}%`;
+    }
+  };
+
+  App.map.on('zoomend', updateZoom);
+  updateZoom(); // Initial check
 }
 
 // ============================================
@@ -195,7 +209,10 @@ export function setBasemap(basemapId) {
   App.currentBasemap = basemapId;
 
   // Update dropdown
-  document.getElementById('basemapSelect').value = basemapId;
+  const basemapSelect = document.getElementById('basemapSelect');
+  if (basemapSelect) {
+    basemapSelect.value = basemapId;
+  }
 
   // Remove current basemap layer
   if (App.basemapLayer && App.map.hasLayer(App.basemapLayer)) {

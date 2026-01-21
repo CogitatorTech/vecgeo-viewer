@@ -14,7 +14,7 @@
 import { initMap, renderData, resetView, setBasemap, toggleBasemap } from './modules/map.js';
 import { exportData, initDuckDB, resetFilter, runSQL } from './modules/duckdb.js';
 import { handleFile } from './modules/parsers.js';
-import { cycleColormap, cycleColumn, setColormap, setColumn } from './modules/visualization.js';
+import { analyzeColumns, cycleColormap, cycleColumn, setColormap, setColumn } from './modules/visualization.js';
 import {
     dataTableNextPage,
     dataTablePrevPage,
@@ -31,7 +31,9 @@ import {
     initDragAndDrop,
     initFileInput,
     initKeyboardShortcuts,
+    initResizeHandler, // Import resize handler
     restoreTheme,
+    showError,
     toggleHelp,
     toggleTheme
 } from './modules/ui.js';
@@ -83,6 +85,9 @@ export const App = {
     basemapVisible: true,
     currentBasemap: 'dark',
     isLoading: false,
+
+    // Stats
+    fileSize: null,
 };
 
 // ============================================
@@ -112,14 +117,63 @@ App.setDataTablePageSize = setDataTablePageSize;
 
 // Rendering settings methods
 App.setFeatureLimit = (value) => {
+    const oldLimit = App.featureLimit;
     App.featureLimit = parseInt(value, 10) || 0;
-    document.getElementById('featureLimitInput').value = App.featureLimit;
+    const featureLimitInput = document.getElementById('featureLimitInput');
+    const featureLimitStatus = document.getElementById('featureLimitStatus');
+
+    if (featureLimitInput) {
+        featureLimitInput.value = App.featureLimit;
+    }
+
     console.log(`[Settings] Feature limit: ${App.featureLimit || 'no limit'}`);
+
+    // If data is loaded and limit changed, re-apply the limit
+    if (App.originalData && oldLimit !== App.featureLimit) {
+        const originalCount = App.originalData.features.length;
+
+        // Apply the new limit
+        let limitedData;
+        if (App.featureLimit > 0 && originalCount > App.featureLimit) {
+            limitedData = {
+                type: 'FeatureCollection',
+                features: App.originalData.features.slice(0, App.featureLimit)
+            };
+            console.log(`[Settings] Re-limited from ${originalCount} to ${App.featureLimit} objects`);
+            showError(`Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()} objects. Adjust limit in Performance Settings.`);
+
+            if (featureLimitStatus) {
+                featureLimitStatus.textContent = `Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()}`;
+                featureLimitStatus.style.color = 'var(--accent-warning, orange)';
+            }
+        } else {
+            limitedData = App.originalData;
+            if (originalCount > 0) {
+                console.log(`[Settings] Showing all ${originalCount} objects`);
+                if (featureLimitStatus) {
+                    featureLimitStatus.textContent = `Showing all ${originalCount.toLocaleString()} objects`;
+                    featureLimitStatus.style.color = 'var(--text-muted)';
+                }
+            }
+        }
+
+        // Update current data and re-render
+        App.currentData = limitedData;
+        analyzeColumns(App.currentData);
+        renderData(App.currentData);
+    } else if (!App.originalData && featureLimitStatus) {
+        // No data loaded yet, show default message
+        featureLimitStatus.textContent = '0 = no limit';
+        featureLimitStatus.style.color = 'var(--text-muted)';
+    }
 };
 
 App.setSimplifyTolerance = (value) => {
     App.simplifyTolerance = parseFloat(value) || 0;
-    document.getElementById('simplifyValue').textContent = App.simplifyTolerance.toFixed(3);
+    const simplifyValue = document.getElementById('simplifyValue');
+    if (simplifyValue) {
+        simplifyValue.textContent = App.simplifyTolerance.toFixed(3);
+    }
     // Re-render if we have data
     if (App.currentData) {
         renderData(App.currentData, true);
@@ -129,70 +183,15 @@ App.setSimplifyTolerance = (value) => {
 
 App.setPointRadius = (value) => {
     App.pointRadius = parseInt(value, 10) || 6;
-    document.getElementById('pointSizeValue').textContent = `${App.pointRadius}px`;
+    const pointSizeValue = document.getElementById('pointSizeValue');
+    if (pointSizeValue) {
+        pointSizeValue.textContent = `${App.pointRadius}px`;
+    }
     // Re-render if we have data
     if (App.currentData) {
         renderData(App.currentData, true);
     }
     console.log(`[Settings] Point radius: ${App.pointRadius}px`);
-};
-
-// Quick filter - simple expression parsing
-App.runQuickFilter = () => {
-    const input = document.getElementById('quickFilterInput').value.trim();
-    if (!input || !App.originalData) {
-        return;
-    }
-
-    try {
-        // Parse simple expressions like: column > value, column == "string", column != value
-        const match = input.match(/^(\w+)\s*(==|!=|>|<|>=|<=)\s*(.+)$/);
-        if (!match) {
-            throw new Error('Invalid expression. Use format: column > value or column == "text"');
-        }
-
-        const [, column, operator, rawValue] = match;
-
-        // Parse value (string or number)
-        let value = rawValue.trim();
-        if ((value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))) {
-            value = value.slice(1, -1); // String value
-        } else if (!isNaN(parseFloat(value))) {
-            value = parseFloat(value); // Number value
-        }
-
-        // Filter features
-        const filtered = App.originalData.features.filter(f => {
-            const propVal = f.properties?.[column];
-            if (propVal === null || propVal === undefined) return false;
-
-            switch (operator) {
-                case '==': return propVal == value;
-                case '!=': return propVal != value;
-                case '>': return parseFloat(propVal) > value;
-                case '<': return parseFloat(propVal) < value;
-                case '>=': return parseFloat(propVal) >= value;
-                case '<=': return parseFloat(propVal) <= value;
-                default: return true;
-            }
-        });
-
-        App.currentData = { type: 'FeatureCollection', features: filtered };
-        renderData(App.currentData);
-        console.log(`[QuickFilter] "${input}" → ${filtered.length} features`);
-
-    } catch (error) {
-        console.error('[QuickFilter]', error);
-        // Show error to user
-        const banner = document.getElementById('errorBanner');
-        const msgEl = document.getElementById('errorMessage');
-        if (banner && msgEl) {
-            msgEl.textContent = error.message;
-            banner.classList.remove('hidden');
-            setTimeout(() => banner.classList.add('hidden'), 5000);
-        }
-    }
 };
 
 // ============================================
@@ -207,6 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initDragAndDrop(handleFile);
     initFileInput(handleFile);
     initKeyboardShortcuts();
+    initResizeHandler(); // Initialize resize handler
     restoreTheme();
 
     // Wire error banner close button

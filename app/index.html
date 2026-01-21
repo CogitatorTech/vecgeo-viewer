@@ -110,8 +110,8 @@
             <div class="range-with-value">
               <input type="number" id="featureLimitInput" value="100000" min="0" max="1000000" step="10000"
                 onchange="App.setFeatureLimit(this.value)">
-              <small>0 = no limit</small>
-            </div> // Fixed closing tag alignment
+              <small id="featureLimitStatus">0 = no limit</small>
+            </div>
           </div>
 
           <div class="control-group">
@@ -169,25 +169,12 @@
           </div>
         </div>
 
-        <div class="panel-section" id="quickFilterSection" style="display: none;">
-          <h3>Quick Filter</h3>
-          <div class="control-group">
-            <label for="quickFilterInput">Filter Expression</label>
-            <input type="text" id="quickFilterInput" placeholder="e.g. population > 1000000"
-              onkeydown="if(event.key==='Enter') App.runQuickFilter()">
-            <small style="display: block; margin-top: 4px; color: var(--text-muted);">
-              Examples: <code>name == "Tokyo"</code> · <code>area > 500</code>
-            </small>
-            <div class="btn-row">
-              <button class="btn btn-primary" onclick="App.runQuickFilter()">Apply</button>
-              <button class="btn btn-secondary" onclick="App.resetFilter()">Clear</button>
-            </div>
-          </div>
-        </div>
+
 
         <div class="panel-section" id="sqlSection" style="display: none;">
           <h3>Advanced SQL Filter</h3>
           <div class="control-group">
+            <label for="sqlInput" class="visually-hidden">SQL Query</label>
             <textarea id="sqlInput" placeholder="SELECT * FROM data LIMIT 100" rows="3"></textarea>
             <div class="btn-row">
               <button class="btn btn-primary" onclick="App.runSQL()">Run Query</button>
@@ -235,6 +222,8 @@
             <span><kbd>R</kbd> Reset Focus</span>
           </div>
         </div>
+
+        <div class="resize-handle" id="resizeHandle"></div>
       </aside>
 
       <!-- Map Container -->
@@ -262,18 +251,22 @@
       </div>
     </main>
 
-    <!-- Status Bar -->
-    <footer class="status-bar" id="statusBar">
-      <div class="status-left">
-        <span id="featureCount">No objects loaded</span>
-      </div>
-      <div class="status-center">
-        <span id="currentColumn">—</span>
-      </div>
-      <div class="status-right">
-        <span id="zoomLevel">Zoom: —</span>
-      </div>
-    </footer>
+  <!-- Status Bar -->
+  <footer class="status-bar" id="statusBar">
+    <div class="status-left">
+      <span id="featureCount">No objects loaded</span>
+      <span class="separator">|</span>
+      <span id="dataSize">Size: —</span>
+      <span class="separator">|</span>
+      <span id="memoryUsage">Mem: —</span>
+    </div>
+    <div class="status-center">
+      <span id="currentColumn">—</span>
+    </div>
+    <div class="status-right">
+      <span id="zoomLevel">Zoom: —</span>
+    </div>
+  </footer>
   </div>
 
   <!-- Drop Overlay -->
@@ -299,9 +292,9 @@
         <div class="help-section">
           <h3>Supported Formats</h3>
           <ul>
-            <li><strong>GeoJSON</strong> (.geojson, .json) — Standard vector format</li>
-            <li><strong>Shapefile</strong> (.zip containing .shp, .dbf, .prj) — ESRI format</li>
-            <li><strong>Parquet</strong> (.parquet, .geoparquet) — Columnar format with geometry</li>
+            <li><strong>GeoJSON:</strong> .geojson and .json files</li>
+            <li><strong>Shapefile:</strong> zip file containing .shp, .dbf, or .prj files</li>
+            <li><strong>Parquet:</strong> .parquet and .geoparquet files</li>
           </ul>
         </div>
         <div class="help-section">
@@ -346,7 +339,7 @@ SELECT *, pop/area AS density FROM data</code></pre>
         </div>
       </div>
       <div class="modal-footer">
-        <p>VecGeo Viewer v0.2.0</a></p>
+        <p>VecGeo Viewer v0.2.0</p>
       </div>
     </div>
   </div>
@@ -357,10 +350,12 @@ SELECT *, pop/area AS density FROM data</code></pre>
       <div class="modal-header">
         <h2>Data Viewer</h2>
         <div class="data-viewer-controls">
-          <input id="dataSearchInput" onkeyup="App.filterDataTable(this.value)" placeholder="Search..." type="text">
+          <label for="dataSearchInput" class="visually-hidden">Search data</label>
+          <input id="dataSearchInput" onkeyup="App.filterDataTable(this.value)" placeholder="Type to filter objects"
+            type="text">
           <span id="dataRowCount">0 rows</span>
         </div>
-        <button aria-label="Close" class="close-btn" onclick="App.hideDataViewer()">x</button>
+        <button aria-label="Close" class="close-btn" onclick="App.hideDataViewer()">×</button>
       </div>
       <div class="modal-body data-viewer-body">
         <div class="table-container">
@@ -378,7 +373,7 @@ SELECT *, pop/area AS density FROM data</code></pre>
           <button class="btn btn-secondary" id="dataNextBtn" onclick="App.dataTableNextPage()">Next</button>
         </div>
         <div class="page-size">
-          <label>Rows per page:</label>
+          <label for="dataPageSize">Rows per page:</label>
           <select id="dataPageSize" onchange="App.setDataTablePageSize(this.value)">
             <option value="25">25</option>
             <option selected value="50">50</option>

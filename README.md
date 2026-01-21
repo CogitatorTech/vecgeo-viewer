@@ -24,7 +24,17 @@ A simple web-based vector geospatial dataset viewer powered by DuckDB-WASM.
 
 Visit the live app: [VecGeo Viewer](https://cogitatortech.github.io/vecgeo-viewer/index.html)
 
-#### Run Locally
+#### Run with Docker
+
+You can also run the application using the pre-built Docker image:
+
+```bash
+docker run -d -p 8080:80 ghcr.io/cogitatortech/vecgeo-viewer:latest
+```
+
+Then open http://localhost:8080 in your browser.
+
+#### Run Locally (for development)
 
 1. Clone the repository:
    ```bash
