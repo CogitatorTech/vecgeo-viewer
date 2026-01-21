@@ -1,6 +1,6 @@
 /**
  * VecGeo Viewer - Data Viewer Modal Styles
- * Styles for the data table popup
+ * Solarized-themed styles for the data table popup
  */
 
 /* --- Data Viewer Modal --- */
@@ -13,19 +13,20 @@
 .data-viewer-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   flex: 1;
-  margin: 0 20px;
+  margin: 0 18px;
 }
 
 .data-viewer-controls input {
-  max-width: 300px;
+  max-width: 260px;
 }
 
 #dataRowCount {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .data-viewer-body {
@@ -40,6 +41,29 @@
   overflow: auto;
 }
 
+/* Custom scrollbar for table */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.table-container::-webkit-scrollbar-corner {
+  background: var(--bg-secondary);
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -52,7 +76,7 @@
   text-align: left;
   border-bottom: 1px solid var(--border-color);
   white-space: nowrap;
-  max-width: 300px;
+  max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -62,61 +86,73 @@
   top: 0;
   background: var(--bg-tertiary);
   font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   cursor: pointer;
   user-select: none;
+  transition: all var(--transition-fast);
 }
 
 .data-table th:hover {
   background: var(--bg-elevated);
-  color: var(--text-primary);
+  color: var(--accent-primary);
 }
 
 .data-table th.sorted-asc::after {
-  content: ' ▲';
-  font-size: 0.7rem;
+  content: ' ↑';
+  color: var(--accent-primary);
 }
 
 .data-table th.sorted-desc::after {
-  content: ' ▼';
-  font-size: 0.7rem;
+  content: ' ↓';
+  color: var(--accent-primary);
+}
+
+.data-table tbody tr {
+  transition: background-color var(--transition-fast);
 }
 
 .data-table tbody tr:hover {
-  background: var(--accent-muted);
+  background: var(--accent-muted) !important;
 }
 
 .data-table tbody tr:nth-child(even) {
-  background: var(--bg-tertiary);
+  background: rgba(131, 148, 150, 0.05);
 }
 
-.data-table tbody tr:nth-child(even):hover {
-  background: var(--accent-muted);
+.data-table td {
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
 }
 
 .data-viewer-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
+  padding: 12px 18px;
+  background: var(--bg-tertiary);
 }
 
 .pagination {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 #dataPageInfo {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .page-size {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 

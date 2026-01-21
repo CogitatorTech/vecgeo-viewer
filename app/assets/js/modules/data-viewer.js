@@ -38,13 +38,19 @@ export function showDataViewer() {
   dataViewerState.searchTerm = '';
   dataViewerState.sortColumn = null;
   dataViewerState.sortDirection = 'asc';
-  document.getElementById('dataSearchInput').value = '';
+  const dataSearchInput = document.getElementById('dataSearchInput');
+  if (dataSearchInput) {
+    dataSearchInput.value = '';
+  }
 
   // Build and render table
   buildDataTable();
 
   // Show modal
-  document.getElementById('dataViewerModal').classList.add('active');
+  const dataViewerModal = document.getElementById('dataViewerModal');
+  if (dataViewerModal) {
+    dataViewerModal.classList.add('active');
+  }
   console.log('[DataViewer] Opened');
 }
 
@@ -52,7 +58,10 @@ export function showDataViewer() {
  * Hide data viewer modal
  */
 export function hideDataViewer() {
-  document.getElementById('dataViewerModal').classList.remove('active');
+  const dataViewerModal = document.getElementById('dataViewerModal');
+  if (dataViewerModal) {
+    dataViewerModal.classList.remove('active');
+  }
   console.log('[DataViewer] Closed');
 }
 
@@ -101,6 +110,8 @@ export function buildDataTable() {
 
   // Build table header
   const thead = document.getElementById('dataTableHead');
+  if (!thead) return;
+
   const headerRow = document.createElement('tr');
 
   // Add row number column
@@ -134,6 +145,8 @@ export function buildDataTable() {
 
   // Build table body
   const tbody = document.getElementById('dataTableBody');
+  if (!tbody) return;
+
   tbody.innerHTML = '';
 
   pageFeatures.forEach((feature, idx) => {
@@ -164,19 +177,29 @@ export function buildDataTable() {
   });
 
   // Update row count and pagination info
-  document.getElementById('dataRowCount').textContent =
-    dataViewerState.searchTerm
+  const dataRowCount = document.getElementById('dataRowCount');
+  if (dataRowCount) {
+    dataRowCount.textContent = dataViewerState.searchTerm
       ? `${totalRows} of ${features.length} rows`
       : `${totalRows} rows`;
+  }
 
-  document.getElementById('dataPageInfo').textContent =
-    totalPages > 0
+  const dataPageInfo = document.getElementById('dataPageInfo');
+  if (dataPageInfo) {
+    dataPageInfo.textContent = totalPages > 0
       ? `Page ${dataViewerState.currentPage} of ${totalPages}`
       : 'No results';
+  }
 
   // Update pagination button states
-  document.getElementById('dataPrevBtn').disabled = dataViewerState.currentPage <= 1;
-  document.getElementById('dataNextBtn').disabled = dataViewerState.currentPage >= totalPages;
+  const dataPrevBtn = document.getElementById('dataPrevBtn');
+  const dataNextBtn = document.getElementById('dataNextBtn');
+  if (dataPrevBtn) {
+    dataPrevBtn.disabled = dataViewerState.currentPage <= 1;
+  }
+  if (dataNextBtn) {
+    dataNextBtn.disabled = dataViewerState.currentPage >= totalPages;
+  }
 }
 
 // ============================================

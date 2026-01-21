@@ -1,6 +1,6 @@
 /**
  * VecGeo Viewer - Overlays Styles
- * Loading, welcome, and drop overlays
+ * Solarized-themed loading, welcome, and drop overlays
  */
 
 /* --- Loading & Welcome Overlays --- */
@@ -23,20 +23,23 @@
   pointer-events: none;
 }
 
+/* Loading Spinner */
 .loading-spinner {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border: 3px solid var(--border-color);
   border-top-color: var(--accent-primary);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 .loading-overlay p {
   margin-top: 16px;
   color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 
+/* Welcome Content */
 .welcome-content {
   text-align: center;
   max-width: 400px;
@@ -45,12 +48,15 @@
 
 .welcome-content h2 {
   font-size: 1.5rem;
+  font-weight: 600;
   margin-bottom: 12px;
+  color: var(--accent-primary);
 }
 
 .welcome-content p {
   color: var(--text-secondary);
   margin-bottom: 20px;
+  line-height: 1.5;
 }
 
 .supported-formats {
@@ -66,8 +72,14 @@
   font-weight: 500;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: 16px;
   color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.format-badge:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 /* Drop Overlay */
@@ -77,8 +89,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 20, 25, 0.9);
+  background: rgba(0, 43, 54, 0.9);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 1000;
   opacity: 0;
   pointer-events: none;
@@ -103,7 +116,7 @@
 }
 
 .drop-content p {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 500;
 }
 
@@ -117,9 +130,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(239, 68, 68, 0.12);
+  background: rgba(220, 50, 47, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text-primary);
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  border: 1px solid rgba(220, 50, 47, 0.3);
   border-left: 4px solid var(--danger);
   padding: 10px 14px;
   border-radius: var(--radius-sm);
@@ -127,11 +142,20 @@
   max-width: 90vw;
 }
 
+.error-banner.hidden {
+  display: none;
+}
+
 .error-banner button {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 18px;
   cursor: pointer;
   padding: 0 6px;
+  transition: color var(--transition-fast);
+}
+
+.error-banner button:hover {
+  color: var(--text-primary);
 }

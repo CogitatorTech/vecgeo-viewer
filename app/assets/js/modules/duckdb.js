@@ -4,10 +4,10 @@
  * Handles DuckDB WASM initialization, data registration, and SQL queries.
  */
 
-import {App} from '../app.js';
-import {hideLoading, showError, showLoading} from './ui.js';
-import {analyzeColumns} from './visualization.js';
-import {renderData} from './map.js';
+import { App } from '../app.js';
+import { hideLoading, showError, showLoading } from './ui.js';
+import { analyzeColumns } from './visualization.js';
+import { renderData } from './map.js';
 
 // ============================================
 // WASM Bundle Configuration
@@ -45,7 +45,7 @@ export async function initDuckDB() {
   }
 
   try {
-    const {selectBundle, ConsoleLogger, AsyncDuckDB} = window.duckdb;
+    const { selectBundle, ConsoleLogger, AsyncDuckDB } = window.duckdb;
 
     // Select the best bundle for this browser
     const bundle = await selectBundle(DUCKDB_BUNDLES);
@@ -66,7 +66,7 @@ export async function initDuckDB() {
     // Try CDN fallback
     try {
       console.log('[DuckDB] Trying CDN fallback...');
-      const {selectBundle, ConsoleLogger, AsyncDuckDB} = window.duckdb;
+      const { selectBundle, ConsoleLogger, AsyncDuckDB } = window.duckdb;
 
       const cdnBundle = {
         mvp: {
@@ -246,6 +246,11 @@ export async function runSQL() {
   }
 
   const sqlInput = document.getElementById('sqlInput');
+  if (!sqlInput) {
+    showError('SQL input element not found.');
+    return;
+  }
+
   let sql = sqlInput.value.trim();
 
   if (!sql) {
@@ -265,11 +270,10 @@ export async function runSQL() {
 
     // Ensure _rowid is included
     let finalSQL = sql;
-    const sqlLower = sql.toLowerCase();
-    if (!sqlLower.includes('_rowid') && sqlLower.includes('from data')) {
-      // Replace "SELECT *" with "SELECT *, _rowid"
-      finalSQL = sql.replace(/select\s+\*/i, 'SELECT *, _rowid');
-    }
+    // Note: _rowid is a physical column in our table, so "SELECT *" already includes it.
+    // We don't need to force inject it for SELECT *, as that causes duplicate keys and Proxy errors.
+
+    // Future improvement: Parse SQL to inject _rowid for non-star queries if needed.
 
     const result = await App.conn.query(finalSQL);
     const rows = result.toArray();
@@ -336,7 +340,10 @@ export function resetFilter() {
     App.currentData = App.originalData;
     analyzeColumns(App.currentData);
     renderData(App.currentData);
-    document.getElementById('sqlInput').value = '';
+    const sqlInput = document.getElementById('sqlInput');
+    if (sqlInput) {
+      sqlInput.value = '';
+    }
     console.log('[Filter] Reset');
   }
 }
@@ -355,7 +362,7 @@ export function exportData() {
   const dataStr = JSON.stringify(App.currentData, null, 2);
 
   // Create blob and download link
-  const blob = new Blob([dataStr], {type: 'application/geo+json'});
+  const blob = new Blob([dataStr], { type: 'application/geo+json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

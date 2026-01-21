@@ -4,8 +4,8 @@
  * Handles map initialization, rendering, basemaps, and view controls.
  */
 
-import {App} from '../app.js';
-import {createColorScale, updateLegend, updateStatus} from './visualization.js';
+import { App } from '../app.js';
+import { createColorScale, updateLegend, updateStatus } from './visualization.js';
 
 // ============================================
 // Basemap Definitions
@@ -72,6 +72,20 @@ export function initMap() {
   App.basemapLayer.addTo(App.map);
 
   console.log('[Map] Initialized');
+
+  // Update zoom display
+  const updateZoom = () => {
+    const zoom = App.map.getZoom();
+    const maxZoom = App.map.getMaxZoom() || 20;
+    const percentage = Math.round((zoom / maxZoom) * 100);
+    const zoomEl = document.getElementById('zoomLevel');
+    if (zoomEl) {
+      zoomEl.textContent = `Zoom: ${percentage}%`;
+    }
+  };
+
+  App.map.on('zoomend', updateZoom);
+  updateZoom(); // Initial check
 }
 
 // ============================================
@@ -146,7 +160,7 @@ export function renderData(geojson, preserveView = false) {
   const pointToLayer = (feature, latlng) => {
     const styleOpts = style(feature);
     return L.circleMarker(latlng, {
-      radius: 6,
+      radius: App.pointRadius,
       ...styleOpts
     });
   };
@@ -172,7 +186,7 @@ export function renderData(geojson, preserveView = false) {
     const bounds = App.geoJsonLayer.getBounds();
     if (bounds.isValid()) {
       App.dataBounds = bounds;
-      App.map.fitBounds(bounds, {padding: [20, 20]});
+      App.map.fitBounds(bounds, { padding: [20, 20] });
     }
   }
 
@@ -195,7 +209,10 @@ export function setBasemap(basemapId) {
   App.currentBasemap = basemapId;
 
   // Update dropdown
-  document.getElementById('basemapSelect').value = basemapId;
+  const basemapSelect = document.getElementById('basemapSelect');
+  if (basemapSelect) {
+    basemapSelect.value = basemapId;
+  }
 
   // Remove current basemap layer
   if (App.basemapLayer && App.map.hasLayer(App.basemapLayer)) {
@@ -219,19 +236,22 @@ export function setBasemap(basemapId) {
 }
 
 /**
- * Toggle basemap visibility (for keyboard shortcut)
+ * Cycle through available basemaps
  */
 export function toggleBasemap() {
-  if (App.basemapVisible && App.basemapLayer) {
-    App.map.removeLayer(App.basemapLayer);
-    App.basemapVisible = false;
-    document.getElementById('basemapSelect').value = 'none';
-  } else {
-    // Restore to last selected basemap or default to dark
-    const basemapId = App.currentBasemap !== 'none' ? App.currentBasemap : 'dark';
-    setBasemap(basemapId);
+  const basemaps = Object.keys(BASEMAPS).filter(k => k !== 'none');
+  let currentIndex = basemaps.indexOf(App.currentBasemap);
+
+  // If current is 'none' or not found, start with first
+  if (currentIndex === -1) {
+    currentIndex = -1;
   }
-  console.log(`[Basemap] ${App.basemapVisible ? 'Shown' : 'Hidden'}`);
+
+  const nextIndex = (currentIndex + 1) % basemaps.length;
+  const nextBasemap = basemaps[nextIndex];
+
+  setBasemap(nextBasemap);
+  console.log(`[Basemap] Cycled to: ${nextBasemap}`);
 }
 
 /**
@@ -239,7 +259,7 @@ export function toggleBasemap() {
  */
 export function resetView() {
   if (App.dataBounds) {
-    App.map.fitBounds(App.dataBounds, {padding: [20, 20]});
+    App.map.fitBounds(App.dataBounds, { padding: [20, 20] });
   }
   console.log('[View] Reset');
 }

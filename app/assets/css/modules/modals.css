@@ -1,6 +1,6 @@
 /**
  * VecGeo Viewer - Modal Styles
- * Help modal and generic modal styling
+ * Solarized-themed help modal and generic modal styling
  */
 
 /* --- Modal --- */
@@ -10,8 +10,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 43, 54, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 2000;
   opacity: 0;
   pointer-events: none;
@@ -24,7 +25,7 @@
 }
 
 .modal-content {
-  width: 560px;
+  width: 540px;
   max-width: 90vw;
   max-height: 85vh;
   background: var(--bg-secondary);
@@ -34,29 +35,42 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: modal-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: modal-pop 0.25s ease-out;
+}
+
+@keyframes modal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--border-color);
 }
 
 .modal-header h2 {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
+  color: var(--accent-primary);
 }
 
 .close-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   background: transparent;
   border: none;
   color: var(--text-muted);
@@ -71,16 +85,30 @@
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 18px;
   overflow-y: auto;
   flex: 1;
 }
 
+/* Custom scrollbar for modal */
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+
 .modal-footer {
-  padding: 12px 20px;
+  padding: 12px 18px;
   border-top: 1px solid var(--border-color);
   text-align: center;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -93,39 +121,57 @@
   text-decoration: underline;
 }
 
+/* Large modal variant */
+.modal-large {
+  width: 900px;
+  max-width: 95vw;
+  max-height: 90vh;
+}
+
 /* --- Help Section --- */
 .help-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .help-section:last-child {
   margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .help-section h3 {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: var(--accent-primary);
-  margin-bottom: 12px;
+  color: var(--accent-secondary);
+  margin-bottom: 10px;
 }
 
 .help-section ul {
-  padding-left: 20px;
+  padding-left: 18px;
   color: var(--text-secondary);
 }
 
 .help-section li {
   margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.help-section li strong {
+  color: var(--text-primary);
 }
 
 .help-section p {
   color: var(--text-secondary);
   margin-bottom: 8px;
+  line-height: 1.5;
 }
 
 .help-section pre {
   padding: 12px;
   background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   overflow-x: auto;
 }
@@ -133,7 +179,7 @@
 .help-section code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.8rem;
-  color: var(--success);
+  color: var(--green);
 }
 
 .shortcuts-table {
@@ -144,8 +190,13 @@
 .shortcuts-table td {
   padding: 8px 0;
   border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.shortcuts-table tr:last-child td {
+  border-bottom: none;
 }
 
 .shortcuts-table td:first-child {
-  width: 140px;
+  width: 130px;
 }

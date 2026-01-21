@@ -4,12 +4,12 @@
  * Handles file parsing for GeoJSON, Shapefile, and Parquet formats.
  */
 
-import {App} from '../app.js';
-import {hideLoading, showError, showLoading} from './ui.js';
-import {transformCRS} from './crs.js';
-import {analyzeColumns} from './visualization.js';
-import {renderData} from './map.js';
-import {registerInDuckDB} from './duckdb.js';
+import { App } from '../app.js';
+import { hideLoading, showError, showLoading } from './ui.js';
+import { transformCRS } from './crs.js';
+import { analyzeColumns } from './visualization.js';
+import { renderData } from './map.js';
+import { registerInDuckDB } from './duckdb.js';
 
 // ============================================
 // File Handler
@@ -22,19 +22,41 @@ import {registerInDuckDB} from './duckdb.js';
 export async function handleFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
 
+  // Store file size
+  App.fileSize = file.size;
+
   showLoading(`Loading ${file.name}...`);
 
   try {
     let geojson;
 
-    if (ext === 'geojson' || ext === 'json') {
-      geojson = await parseGeoJSON(file);
-    } else if (ext === 'zip') {
-      geojson = await parseShapefile(file);
-    } else if (ext === 'parquet' || ext === 'geoparquet') {
-      geojson = await parseParquet(file);
-    } else {
-      throw new Error(`Unsupported file format: .${ext}`);
+    switch (ext) {
+      case 'geojson':
+      case 'json':
+        geojson = await parseGeoJSON(file);
+        break;
+
+      case 'zip':
+        geojson = await parseShapefile(file);
+        break;
+
+      case 'parquet':
+      case 'geoparquet':
+        geojson = await parseParquet(file);
+        break;
+
+      case 'gpkg':
+        throw new Error('GeoPackage (.gpkg) is not yet supported in the browser. Please convert to GeoJSON using QGIS or ogr2ogr.');
+
+      case 'kml':
+      case 'kmz':
+        throw new Error('KML/KMZ files are not yet supported. Please convert to GeoJSON using geojson.io or QGIS.');
+
+      case 'gdb':
+        throw new Error('FileGDB (.gdb) requires desktop tools. Please convert to GeoJSON using QGIS or ArcGIS.');
+
+      default:
+        throw new Error(`Unsupported file format: .${ext}. Supported: GeoJSON, Shapefile (zip), Parquet.`);
     }
 
     await loadGeoJSON(geojson, file.name);
@@ -60,8 +82,7 @@ async function parseGeoJSON(file) {
   const geojson = JSON.parse(text);
 
   // Check if transformation is needed
-  const transformedGeoJSON = await transformCRS(geojson);
-  return transformedGeoJSON;
+  return await transformCRS(geojson);
 }
 
 // ============================================
@@ -181,28 +202,72 @@ export async function loadGeoJSON(geojson, filename) {
 
   // Normalize to FeatureCollection
   if (geojson.type === 'Feature') {
-    geojson = {type: 'FeatureCollection', features: [geojson]};
+    geojson = { type: 'FeatureCollection', features: [geojson] };
   } else if (geojson.type !== 'FeatureCollection') {
     throw new Error('Invalid GeoJSON: Expected Feature or FeatureCollection');
   }
 
-  // Store original data
+  // Store FULL original data BEFORE applying limit
   App.originalData = geojson;
-  App.currentData = geojson;
+
+  // Apply feature limit to create current data
+  const originalCount = geojson.features.length;
+  let currentData;
+
+  if (App.featureLimit > 0 && originalCount > App.featureLimit) {
+    currentData = {
+      type: 'FeatureCollection',
+      features: geojson.features.slice(0, App.featureLimit)
+    };
+    console.log(`[Loader] Limited from ${originalCount} to ${App.featureLimit} objects`);
+    showError(`Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()} objects. Adjust limit in Performance Settings.`);
+
+    // Update status display
+    const featureLimitStatus = document.getElementById('featureLimitStatus');
+    if (featureLimitStatus) {
+      featureLimitStatus.textContent = `Showing ${App.featureLimit.toLocaleString()} of ${originalCount.toLocaleString()}`;
+      featureLimitStatus.style.color = 'var(--accent-warning, orange)';
+    }
+  } else {
+    currentData = geojson;
+
+    // Update status display
+    const featureLimitStatus = document.getElementById('featureLimitStatus');
+    if (featureLimitStatus && originalCount > 0) {
+      featureLimitStatus.textContent = `Showing all ${originalCount.toLocaleString()} objects`;
+      featureLimitStatus.style.color = 'var(--text-muted)';
+    }
+  }
+
+  App.currentData = currentData;
 
   // Analyze columns
-  analyzeColumns(geojson);
+  analyzeColumns(currentData);
 
-  // Register data in DuckDB for SQL queries
-  await registerInDuckDB(geojson);
+  // Register FULL original data in DuckDB for SQL queries (so SQL can access all rows)
+  await registerInDuckDB(App.originalData);
 
-  // Add to map
-  renderData(geojson);
+  // Add CURRENT (limited) data to map
+  renderData(currentData);
 
   // Show controls
-  document.getElementById('dataControls').style.display = 'block';
-  document.getElementById('sqlSection').style.display = 'block';
-  document.getElementById('welcomeOverlay').classList.add('hidden');
+  const dataControls = document.getElementById('dataControls');
+  const visualizationControls = document.getElementById('visualizationControls');
+  const sqlSection = document.getElementById('sqlSection');
+  const welcomeOverlay = document.getElementById('welcomeOverlay');
+
+  if (dataControls) {
+    dataControls.style.display = 'block';
+  }
+  if (visualizationControls) {
+    visualizationControls.style.display = 'block';
+  }
+  if (sqlSection) {
+    sqlSection.style.display = 'block';
+  }
+  if (welcomeOverlay) {
+    welcomeOverlay.classList.add('hidden');
+  }
 
   // Auto-select first numeric column for coloring
   if (App.numericColumns.length > 0) {
@@ -212,5 +277,11 @@ export async function loadGeoJSON(geojson, filename) {
   }
 
   hideLoading();
-  console.log(`[VecGeo Viewer] Loaded ${geojson.features.length} features from ${filename}`);
+  const displayedCount = currentData.features.length;
+  const totalCount = App.originalData.features.length;
+  if (displayedCount < totalCount) {
+    console.log(`[VecGeo Viewer] Loaded ${totalCount} objects from ${filename}, displaying ${displayedCount}`);
+  } else {
+    console.log(`[VecGeo Viewer] Loaded ${totalCount} objects from ${filename}`);
+  }
 }

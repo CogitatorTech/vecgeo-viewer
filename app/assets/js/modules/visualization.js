@@ -4,7 +4,32 @@
  * Handles color scales, column analysis, legend, and visualization settings.
  */
 
-import {App} from '../app.js';
+import { App } from '../app.js';
+
+// ============================================
+// Custom Colormap Definitions
+// ============================================
+
+// Turbo colormap (Google AI) - sampled color stops
+const TURBO_COLORS = [
+  '#30123b', '#4145ab', '#4675ed', '#39a2fc', '#1bcfd4',
+  '#24eca6', '#61fc6c', '#a4fc3b', '#d1e834', '#f3c63a',
+  '#fe9b2d', '#f36315', '#d93806', '#b11901', '#7a0402'
+];
+
+// Cividis colormap (colorblind-friendly) - sampled color stops
+const CIVIDIS_COLORS = [
+  '#00204d', '#00306f', '#1e4174', '#3d5076', '#575d6d',
+  '#6f6b5d', '#867a49', '#9f8a32', '#ba9b1c', '#d6ac00',
+  '#f4c800', '#fee838', '#fdfd66'
+];
+
+// Register custom colormaps with chroma
+if (typeof chroma !== 'undefined') {
+  chroma.brewer = chroma.brewer || {};
+  chroma.brewer.turbo = TURBO_COLORS;
+  chroma.brewer.cividis = CIVIDIS_COLORS;
+}
 
 // ============================================
 // Column Analysis
@@ -210,8 +235,88 @@ export function updateLegend() {
  */
 export function updateStatus(geojson) {
   const count = geojson?.features?.length || 0;
-  document.getElementById('featureCount').textContent = `${count.toLocaleString()} features`;
-  document.getElementById('currentColumn').textContent = App.currentColumn || '—';
+  const featureCountEl = document.getElementById('featureCount');
+  const currentColumnEl = document.getElementById('currentColumn');
+  const dataSizeEl = document.getElementById('dataSize');
+  const memoryUsageEl = document.getElementById('memoryUsage');
+
+  if (featureCountEl) {
+    featureCountEl.textContent = `${count.toLocaleString()} objects`;
+  }
+  if (currentColumnEl) {
+    currentColumnEl.textContent = App.currentColumn || '—';
+  }
+
+  // Estimate Data Size (Dynamic based on filtered data)
+  const estimatedSizeBytes = estimateDataSize(geojson);
+  if (estimatedSizeBytes > 0 && dataSizeEl) {
+    const sizeMB = estimatedSizeBytes / (1024 * 1024);
+    const sizeText = sizeMB >= 1 ? `~${sizeMB.toFixed(2)} MB` : `~${(estimatedSizeBytes / 1024).toFixed(2)} KB`;
+    dataSizeEl.textContent = `Dataset Size: ${sizeText}`;
+  } else if (dataSizeEl) {
+    dataSizeEl.textContent = 'Dataset Size: —';
+  }
+
+  // Estimate Memory Usage (Dynamic based on filtered data)
+  // We use the estimated memory for consistency across filtering actions,
+  // as browser heap size (Chrome) is global and lazy-collected.
+  const estimatedMem = estimateDataMemory(geojson);
+  if (estimatedMem > 0 && memoryUsageEl) {
+    memoryUsageEl.textContent = `Mem: ~${estimatedMem.toFixed(1)} MB`;
+    memoryUsageEl.title = "Estimated RAM usage of current data (JSON + Object overhead)";
+  } else if (memoryUsageEl) {
+    memoryUsageEl.textContent = 'Mem: N/A';
+  }
+}
+
+/**
+ * Estimate raw JSON size of GeoJSON data
+ */
+function estimateDataSize(geojson) {
+  if (!geojson || !geojson.features || geojson.features.length === 0) return 0;
+
+  const sampleSize = Math.min(50, geojson.features.length);
+  const sampleFeatures = geojson.features.slice(0, sampleSize);
+
+  let sampleBytes = 0;
+  try {
+    sampleBytes = JSON.stringify(sampleFeatures).length;
+  } catch (e) {
+    return 0;
+  }
+
+  const avgBytesPerFeature = sampleBytes / sampleSize;
+  return avgBytesPerFeature * geojson.features.length;
+}
+
+/**
+ * Estimate memory usage of GeoJSON data (Fallback for Firefox/Safari)
+ * Samples 50 features to calculate average size + overhead
+ */
+function estimateDataMemory(geojson) {
+  if (!geojson || !geojson.features || geojson.features.length === 0) return 0;
+
+  const sampleSize = Math.min(50, geojson.features.length);
+  const sampleFeatures = geojson.features.slice(0, sampleSize);
+
+  // Serialize sample to get approximation of raw data size
+  let sampleBytes = 0;
+  try {
+    sampleBytes = JSON.stringify(sampleFeatures).length;
+  } catch (e) {
+    return 0; // Circular structure or error
+  }
+
+  // Calculate average per feature
+  const avgBytesPerFeature = sampleBytes / sampleSize;
+  const totalRawBytes = avgBytesPerFeature * geojson.features.length;
+
+  // JS Objects take more memory than raw JSON string (V8/SpiderMonkey overhead)
+  // Rule of thumb: ~1.5x - 2x overhead for object structures + properties
+  const objectOverheadFactor = 2.0;
+
+  const totalBytes = totalRawBytes * objectOverheadFactor;
+  return totalBytes / (1024 * 1024); // MB
 }
 
 // ============================================
@@ -228,7 +333,10 @@ export function setColumn(column, renderData) {
   App.columnIndex = [...App.numericColumns, ...App.categoricalColumns].indexOf(column);
 
   // Update dropdown
-  document.getElementById('columnSelect').value = column || '';
+  const columnSelect = document.getElementById('columnSelect');
+  if (columnSelect) {
+    columnSelect.value = column || '';
+  }
 
   // Re-render (preserve current view)
   if (App.currentData && renderData) {
@@ -261,7 +369,10 @@ export function setColormap(colormap, renderData) {
   App.colormapIndex = App.colormaps.indexOf(colormap);
 
   // Update dropdown
-  document.getElementById('colormapSelect').value = colormap;
+  const colormapSelect = document.getElementById('colormapSelect');
+  if (colormapSelect) {
+    colormapSelect.value = colormap;
+  }
 
   // Re-render (preserve current view)
   if (App.currentData && renderData) {
