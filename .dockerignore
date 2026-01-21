@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+tmp
+scripts
+node_modules
+*.md
+.gitignore
+.dockerignore
+.editorconfig
+.prettierignore
+LICENSE
+pyproject.toml
