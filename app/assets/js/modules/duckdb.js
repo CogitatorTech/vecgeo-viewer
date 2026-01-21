@@ -27,16 +27,22 @@ const CDN_BUNDLES = {
   }
 };
 
-// Local bundles (fallback)
-const LOCAL_BUNDLES = {
-  mvp: {
-    mainModule: '/assets/vendor/duckdb/duckdb-mvp.wasm',
-    mainWorker: '/assets/vendor/duckdb/duckdb-browser-mvp.worker.js'
-  },
-  eh: {
-    mainModule: '/assets/vendor/duckdb/duckdb-eh.wasm',
-    mainWorker: '/assets/vendor/duckdb/duckdb-browser-eh.worker.js'
-  }
+// Local bundles (fallback) - use relative paths for subdirectory hosting
+const getLocalBundles = () => {
+  // Get base URL from current page location to support subdirectory hosting
+  let basePath = window.location.pathname.replace(/\/[^/]*$/, '');
+  // Ensure root path works correctly (empty string becomes empty, which is fine with leading slash)
+  if (basePath === '') basePath = '';
+  return {
+    mvp: {
+      mainModule: `${basePath}/assets/vendor/duckdb/duckdb-mvp.wasm`,
+      mainWorker: `${basePath}/assets/vendor/duckdb/duckdb-browser-mvp.worker.js`
+    },
+    eh: {
+      mainModule: `${basePath}/assets/vendor/duckdb/duckdb-eh.wasm`,
+      mainWorker: `${basePath}/assets/vendor/duckdb/duckdb-browser-eh.worker.js`
+    }
+  };
 };
 
 // ============================================
@@ -73,11 +79,11 @@ export async function initDuckDB() {
 
   console.log('[DuckDB] Module loaded, starting initialization...');
 
-  const {selectBundle, ConsoleLogger, AsyncDuckDB} = window.duckdb;
+  const {selectBundle, VoidLogger, AsyncDuckDB} = window.duckdb;
 
   // Try local first (workers have same-origin restrictions), then CDN
   const bundleSources = [
-    {name: 'local', bundles: LOCAL_BUNDLES},
+    {name: 'local', bundles: getLocalBundles()},
     {name: 'CDN', bundles: CDN_BUNDLES}
   ];
 
@@ -90,7 +96,8 @@ export async function initDuckDB() {
       const worker = new Worker(bundle.mainWorker);
       console.log(`[DuckDB] Worker created`);
 
-      const logger = new ConsoleLogger();
+      // Use VoidLogger to prevent DuckDB from logging all SQL queries/data to console
+      const logger = new VoidLogger();
       const db = new AsyncDuckDB(logger, worker);
       console.log(`[DuckDB] AsyncDuckDB instance created, instantiating WASM...`);
 
@@ -277,9 +284,12 @@ export async function registerInDuckDB(geojson) {
           console.warn(`[DuckDB] Insert batch failed at rows ${i}-${end - 1}. Reducing batch size ${batchSize} -> ${nextSize}`);
           batchSize = nextSize;
         } else {
-          // Single row failed - log details and skip this row
-          console.error(`[DuckDB] Insert failed for row ${i}, skipping. Error:`, batchErr.message);
-          console.error(`[DuckDB] Problematic feature properties:`, features[i]?.properties);
+          // Single row failed - skip this row (only log if under threshold to avoid console flood)
+          if (i < 5) {
+            console.warn(`[DuckDB] Insert failed for row ${i}, skipping:`, batchErr.message);
+          } else if (i === 5) {
+            console.warn(`[DuckDB] Additional insert errors suppressed to avoid console flood`);
+          }
           i++; // Skip the problematic row and continue
         }
       }
