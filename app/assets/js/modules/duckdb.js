@@ -4,16 +4,31 @@
  * Handles DuckDB WASM initialization, data registration, and SQL queries.
  */
 
-import { App } from '../app.js';
-import { hideLoading, showError, showLoading } from './ui.js';
-import { analyzeColumns } from './visualization.js';
-import { renderData } from './map.js';
+import {App} from '../app.js';
+import {hideLoading, showError, showLoading} from './ui.js';
+import {analyzeColumns} from './visualization.js';
+import {renderData} from './map.js';
 
 // ============================================
 // WASM Bundle Configuration
 // ============================================
 
-const DUCKDB_BUNDLES = {
+const DUCKDB_VERSION = '1.31.0';
+
+// CDN bundles (more reliable)
+const CDN_BUNDLES = {
+  mvp: {
+    mainModule: `https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@${DUCKDB_VERSION}/dist/duckdb-mvp.wasm`,
+    mainWorker: `https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@${DUCKDB_VERSION}/dist/duckdb-browser-mvp.worker.js`
+  },
+  eh: {
+    mainModule: `https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@${DUCKDB_VERSION}/dist/duckdb-eh.wasm`,
+    mainWorker: `https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@${DUCKDB_VERSION}/dist/duckdb-browser-eh.worker.js`
+  }
+};
+
+// Local bundles (fallback)
+const LOCAL_BUNDLES = {
   mvp: {
     mainModule: '/assets/vendor/duckdb/duckdb-mvp.wasm',
     mainWorker: '/assets/vendor/duckdb/duckdb-browser-mvp.worker.js'
@@ -32,66 +47,75 @@ const DUCKDB_BUNDLES = {
  * Initialize DuckDB WASM
  */
 export async function initDuckDB() {
-  // Wait for duckdb module to be available
+  // Wait for the duckdb module loading promise from index.html
+  if (window.duckdbReady) {
+    try {
+      const loaded = await window.duckdbReady;
+      if (!loaded) {
+        console.warn('[DuckDB] Module loading promise returned false');
+      }
+    } catch (e) {
+      console.error('[DuckDB] Module loading promise failed:', e);
+    }
+  }
+
+  // Also do a polling check as fallback
   let attempts = 0;
-  while (!window.duckdb && attempts < 50) {
+  while (!window.duckdb && attempts < 30) {
     await new Promise(resolve => setTimeout(resolve, 100));
     attempts++;
   }
 
   if (!window.duckdb) {
-    console.warn('[DuckDB] Module not available, SQL features disabled');
+    console.warn('[DuckDB] Module not available after waiting, SQL features disabled');
     return;
   }
 
-  try {
-    const { selectBundle, ConsoleLogger, AsyncDuckDB } = window.duckdb;
+  console.log('[DuckDB] Module loaded, starting initialization...');
 
-    // Select the best bundle for this browser
-    const bundle = await selectBundle(DUCKDB_BUNDLES);
+  const {selectBundle, ConsoleLogger, AsyncDuckDB} = window.duckdb;
 
-    // Instantiate the worker
-    const worker = new Worker(bundle.mainWorker);
-    const logger = new ConsoleLogger();
-    App.db = new AsyncDuckDB(logger, worker);
-    await App.db.instantiate(bundle.mainModule);
+  // Try local first (workers have same-origin restrictions), then CDN
+  const bundleSources = [
+    {name: 'local', bundles: LOCAL_BUNDLES},
+    {name: 'CDN', bundles: CDN_BUNDLES}
+  ];
 
-    // Open a connection
-    App.conn = await App.db.connect();
-
-    console.log('[DuckDB] Initialized successfully');
-
-  } catch (error) {
-    console.error('[DuckDB] Failed to initialize:', error);
-    // Try CDN fallback
+  for (const source of bundleSources) {
     try {
-      console.log('[DuckDB] Trying CDN fallback...');
-      const { selectBundle, ConsoleLogger, AsyncDuckDB } = window.duckdb;
+      console.log(`[DuckDB] Trying ${source.name} bundles...`);
+      const bundle = await selectBundle(source.bundles);
+      console.log(`[DuckDB] Selected bundle:`, bundle.mainModule);
 
-      const cdnBundle = {
-        mvp: {
-          mainModule: 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-mvp.wasm',
-          mainWorker: 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-browser-mvp.worker.js'
-        },
-        eh: {
-          mainModule: 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-eh.wasm',
-          mainWorker: 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-browser-eh.worker.js'
-        }
-      };
-
-      const bundle = await selectBundle(cdnBundle);
       const worker = new Worker(bundle.mainWorker);
+      console.log(`[DuckDB] Worker created`);
+
       const logger = new ConsoleLogger();
-      App.db = new AsyncDuckDB(logger, worker);
-      await App.db.instantiate(bundle.mainModule);
-      App.conn = await App.db.connect();
+      const db = new AsyncDuckDB(logger, worker);
+      console.log(`[DuckDB] AsyncDuckDB instance created, instantiating WASM...`);
 
-      console.log('[DuckDB] Initialized from CDN');
+      await db.instantiate(bundle.mainModule);
+      console.log(`[DuckDB] WASM instantiated`);
 
-    } catch (cdnError) {
-      console.error('[DuckDB] CDN fallback also failed:', cdnError);
+      const conn = await db.connect();
+      console.log(`[DuckDB] Connection established`);
+
+      // Only assign to App after full success
+      App.db = db;
+      App.conn = conn;
+
+      console.log(`[DuckDB] Initialized successfully from ${source.name}`);
+      return; // Success - exit
+
+    } catch (error) {
+      console.error(`[DuckDB] Failed to initialize from ${source.name}:`, error);
+      // Clean up partial state
+      App.db = null;
+      App.conn = null;
     }
   }
+
+  console.error('[DuckDB] All initialization attempts failed. SQL features disabled.');
 }
 
 // ============================================
@@ -106,12 +130,10 @@ export async function registerInDuckDB(geojson) {
   if (!App.conn) return;
 
   try {
-    // Drop existing table
     await App.conn.query('DROP TABLE IF EXISTS data');
 
-    // Prepare data for insertion
     const features = geojson.features;
-    if (features.length === 0) return;
+    if (!features || features.length === 0) return;
 
     // Get all columns (filter out columns with problematic names)
     const allCols = new Set();
@@ -130,75 +152,45 @@ export async function registerInDuckDB(geojson) {
       return;
     }
 
-    // Helper function to safely escape SQL values
-    const escapeValue = (val) => {
-      if (val === null || val === undefined) {
-        return 'NULL';
-      }
-
-      // Handle arrays and objects - convert to JSON string
-      if (typeof val === 'object') {
-        try {
-          const jsonStr = JSON.stringify(val);
-          return `'${jsonStr.replace(/'/g, "''")}'`;
-        } catch {
-          return 'NULL';
+    // Determine column types robustly (scan a sample of rows)
+    const colTypes = {};
+    const sampleSize = Math.min(features.length, 1000);
+    cols.forEach(col => {
+      let seenNumber = false;
+      let seenBoolean = false;
+      let seenStringOrObject = false;
+      for (let i = 0; i < sampleSize; i++) {
+        const v = features[i]?.properties?.[col];
+        if (v === null || v === undefined) continue;
+        const t = typeof v;
+        if (t === 'number' && Number.isFinite(v)) {
+          seenNumber = true;
+        } else if (t === 'boolean') {
+          seenBoolean = true;
+        } else {
+          // strings, objects, arrays -> treat as string storage
+          seenStringOrObject = true;
+        }
+        // Early exit if mixed
+        if ((seenNumber && seenStringOrObject) || (seenBoolean && (seenNumber || seenStringOrObject))) {
+          break;
         }
       }
-
-      // Handle booleans
-      if (typeof val === 'boolean') {
-        return val ? 'TRUE' : 'FALSE';
+      // Prefer VARCHAR if mixed types; otherwise map number->DOUBLE, boolean->BOOLEAN, else VARCHAR
+      if (seenNumber && !seenStringOrObject && !seenBoolean) {
+        colTypes[col] = 'DOUBLE';
+      } else if (seenBoolean && !seenNumber && !seenStringOrObject) {
+        colTypes[col] = 'BOOLEAN';
+      } else {
+        colTypes[col] = 'VARCHAR';
       }
-
-      // Handle numbers
-      if (typeof val === 'number') {
-        // Handle special float values
-        if (!Number.isFinite(val)) {
-          return 'NULL'; // NaN, Infinity, -Infinity
-        }
-        return String(val);
-      }
-
-      // Handle strings
-      if (typeof val === 'string') {
-        // Escape single quotes and handle special characters
-        const escaped = val
-          .replace(/'/g, "''")
-          .replace(/\\/g, '\\\\')
-          .replace(/\x00/g, ''); // Remove null bytes
-        return `'${escaped}'`;
-      }
-
-      // Fallback: convert to string
-      try {
-        const strVal = String(val);
-        return `'${strVal.replace(/'/g, "''")}'`;
-      } catch {
-        return 'NULL';
-      }
-    };
+    });
 
     // Add _rowid for geometry matching
     const colDefs = ['_rowid INTEGER'];
     cols.forEach(col => {
-      // Infer type from first non-null, valid value
-      let type = 'VARCHAR';
-      for (const f of features) {
-        const val = f.properties?.[col];
-        if (val !== null && val !== undefined) {
-          if (typeof val === 'number' && Number.isFinite(val)) {
-            type = Number.isInteger(val) ? 'BIGINT' : 'DOUBLE';
-          } else if (typeof val === 'boolean') {
-            type = 'BOOLEAN';
-          }
-          // Objects, arrays, and strings remain VARCHAR
-          break;
-        }
-      }
-      // Escape column name (handle special characters)
       const escapedCol = col.replace(/"/g, '""');
-      colDefs.push(`"${escapedCol}" ${type}`);
+      colDefs.push(`"${escapedCol}" ${colTypes[col]}`);
     });
 
     // Create table
@@ -207,28 +199,113 @@ export async function registerInDuckDB(geojson) {
                             ${colDefs.join(', ')}
                           )`);
 
-    // Insert data in batches (smaller batch size for stability)
-    const batchSize = 500;
-    for (let i = 0; i < features.length; i += batchSize) {
-      const batch = features.slice(i, i + batchSize);
-      const values = batch.map((f, idx) => {
-        const rowVals = [i + idx]; // _rowid
+    // Insert data in adaptive batches to avoid oversized SQL statements
+    const insertCols = ['_rowid', ...cols.map(c => `"${c.replace(/"/g, '""')}"`)];
+
+    const encodeValueForType = (val, type) => {
+      if (val === null || val === undefined) return 'NULL';
+      switch (type) {
+        case 'DOUBLE':
+          if (typeof val === 'number' && Number.isFinite(val)) return String(val);
+          return 'NULL';
+        case 'BOOLEAN':
+          if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE';
+          return 'NULL';
+        default: {
+          // VARCHAR: stringify objects/arrays; escape strings
+          let strVal;
+          if (typeof val === 'object') {
+            try {
+              strVal = JSON.stringify(val);
+            } catch {
+              return 'NULL';
+            }
+          } else if (typeof val === 'string') {
+            strVal = val;
+          } else if (typeof val === 'number' || typeof val === 'boolean') {
+            strVal = String(val);
+          } else {
+            try {
+              strVal = String(val);
+            } catch {
+              return 'NULL';
+            }
+          }
+
+          // Robust escaping for SQL strings
+          // Remove null bytes, escape single quotes and backslashes
+          // Limit string length to avoid oversized SQL
+          const maxLen = 10000;
+          if (strVal.length > maxLen) {
+            strVal = strVal.substring(0, maxLen);
+          }
+          const escaped = strVal
+            .replace(/\x00/g, '')           // Remove null bytes
+            .replace(/'/g, "''")            // Escape single quotes
+            .replace(/\\/g, '\\\\');        // Escape backslashes
+          return `'${escaped}'`;
+        }
+      }
+    };
+
+    const buildValuesSQL = (batch, offset) => {
+      return batch.map((f, idx) => {
+        const rowVals = [offset + idx]; // _rowid
         cols.forEach(col => {
           const val = f.properties?.[col];
-          rowVals.push(escapeValue(val));
+          rowVals.push(encodeValueForType(val, colTypes[col]));
         });
         return `(${rowVals.join(', ')})`;
       }).join(',\n');
+    };
 
-      const insertCols = ['_rowid', ...cols.map(c => `"${c.replace(/"/g, '""')}"`)];
-      await App.conn.query(`INSERT INTO data (${insertCols.join(', ')})
-                            VALUES ${values}`);
+    let batchSize = 100; // start more conservative
+    let i = 0;
+    while (i < features.length) {
+      const end = Math.min(i + batchSize, features.length);
+      const batch = features.slice(i, end);
+      const valuesSQL = buildValuesSQL(batch, i);
+      const insertSQL = `INSERT INTO data (${insertCols.join(', ')})
+                         VALUES ${valuesSQL}`;
+
+      try {
+        await App.conn.query(insertSQL);
+        i = end; // advance on success
+      } catch (batchErr) {
+        if (batchSize > 1) {
+          const nextSize = Math.max(1, Math.floor(batchSize / 2));
+          console.warn(`[DuckDB] Insert batch failed at rows ${i}-${end - 1}. Reducing batch size ${batchSize} -> ${nextSize}`);
+          batchSize = nextSize;
+        } else {
+          // Single row failed - log details and skip this row
+          console.error(`[DuckDB] Insert failed for row ${i}, skipping. Error:`, batchErr.message);
+          console.error(`[DuckDB] Problematic feature properties:`, features[i]?.properties);
+          i++; // Skip the problematic row and continue
+        }
+      }
     }
 
     console.log(`[DuckDB] Registered ${features.length} features`);
 
+    // Sanity check that row count matches feature count
+    try {
+      const stats = await App.conn.query('SELECT COUNT(*) AS cnt, MAX(_rowid) AS max_id FROM data');
+      const row = stats.toArray()[0];
+      const expectedMaxId = features.length - 1;
+      if (row) {
+        const actualCount = Number(row.cnt);
+        const actualMaxId = Number(row.max_id);
+        if (actualCount !== features.length || actualMaxId !== expectedMaxId) {
+          console.warn(`[DuckDB] Data mismatch: expected ${features.length} rows (max_id=${expectedMaxId}), got ${actualCount} rows (max_id=${actualMaxId})`);
+        }
+      }
+    } catch (statsErr) {
+      console.warn('[DuckDB] Could not run sanity check:', statsErr);
+    }
+
   } catch (error) {
     console.error('[DuckDB] Failed to register data:', error);
+    showError(`DuckDB load failed: ${error.message}`);
   }
 }
 
@@ -284,32 +361,38 @@ export async function runSQL() {
       return;
     }
 
-    const rowIds = rows.map(r => r._rowid).filter(id => id !== undefined);
+    // Map rows back to features by _rowid safely
+    const sourceFeatures = App.originalData?.features || [];
+    const rowMap = new Map();
+    rows.forEach(r => {
+      if (r._rowid !== undefined && r._rowid !== null) {
+        rowMap.set(Number(r._rowid), r);
+      }
+    });
 
-    if (rowIds.length === 0) {
+    const validRowIds = Array.from(rowMap.keys()).filter(id => Number.isInteger(id) && id >= 0 && id < sourceFeatures.length);
+
+    if (validRowIds.length === 0) {
       hideLoading();
-      showError('Query must include _rowid or use SELECT *');
+      showError('Query must return _rowid within the loaded data range.');
       return;
     }
 
-    // Filter original features by rowId
-    const filteredFeatures = rowIds.map(id => App.originalData.features[id]).filter(f => f);
-
-    // Update properties from SQL result
-    rows.forEach((row, i) => {
-      if (filteredFeatures[i]) {
-        const newProps = {};
-        for (const key of Object.keys(row)) {
-          if (key !== '_rowid') {
-            newProps[key] = row[key];
-          }
+    const filteredFeatures = validRowIds.map(id => {
+      const feature = sourceFeatures[id];
+      const row = rowMap.get(id);
+      if (!feature || !row) return null;
+      const newProps = {};
+      for (const key of Object.keys(row)) {
+        if (key !== '_rowid') {
+          newProps[key] = row[key];
         }
-        filteredFeatures[i] = {
-          ...filteredFeatures[i],
-          properties: newProps
-        };
       }
-    });
+      return {
+        ...feature,
+        properties: newProps
+      };
+    }).filter(Boolean);
 
     App.currentData = {
       type: 'FeatureCollection',
@@ -322,7 +405,7 @@ export async function runSQL() {
     // Re-render
     renderData(App.currentData);
 
-    console.log(`[SQL] Query returned ${rows.length} rows`);
+    console.log(`[SQL] Query returned ${filteredFeatures.length} rows`);
     hideLoading();
 
   } catch (error) {
@@ -333,18 +416,21 @@ export async function runSQL() {
 }
 
 /**
- * Reset filter and show all data
+ * Reset view to fit current data (zoom/pan to show all current features)
  */
 export function resetFilter() {
-  if (App.originalData) {
-    App.currentData = App.originalData;
-    analyzeColumns(App.currentData);
-    renderData(App.currentData);
-    const sqlInput = document.getElementById('sqlInput');
-    if (sqlInput) {
-      sqlInput.value = '';
-    }
-    console.log('[Filter] Reset');
+  if (!App.currentData || !App.map || !App.geoJsonLayer) {
+    console.warn('[View] Cannot reset focus - no data or map layer');
+    return;
+  }
+
+  const bounds = App.geoJsonLayer.getBounds();
+  if (bounds && bounds.isValid()) {
+    App.map.fitBounds(bounds, {
+      padding: [50, 50],
+      maxZoom: 16
+    });
+    console.log('[View] Reset focus to current data');
   }
 }
 
@@ -362,7 +448,7 @@ export function exportData() {
   const dataStr = JSON.stringify(App.currentData, null, 2);
 
   // Create blob and download link
-  const blob = new Blob([dataStr], { type: 'application/geo+json' });
+  const blob = new Blob([dataStr], {type: 'application/geo+json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

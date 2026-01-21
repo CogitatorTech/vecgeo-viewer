@@ -4,7 +4,7 @@
  * Handles color scales, column analysis, legend, and visualization settings.
  */
 
-import { App } from '../app.js';
+import {App} from '../app.js';
 
 // ============================================
 // Custom Colormap Definitions
@@ -80,10 +80,19 @@ export function analyzeColumns(geojson) {
  */
 export function updateColumnSelector() {
   const select = document.getElementById('columnSelect');
+  if (!select) return;
 
-  // Clear existing options except the first placeholder
-  while (select.options.length > 1) {
-    select.remove(1);
+  // Clear ALL children (options AND optgroups) except the first placeholder option
+  const placeholder = select.querySelector('option[value=""]');
+  select.innerHTML = '';
+  if (placeholder) {
+    select.appendChild(placeholder);
+  } else {
+    // Recreate placeholder if it was lost
+    const newPlaceholder = document.createElement('option');
+    newPlaceholder.value = '';
+    newPlaceholder.textContent = '-- Select column --';
+    select.appendChild(newPlaceholder);
   }
 
   // Add numeric columns
@@ -262,10 +271,10 @@ export function updateStatus(geojson) {
   // as browser heap size (Chrome) is global and lazy-collected.
   const estimatedMem = estimateDataMemory(geojson);
   if (estimatedMem > 0 && memoryUsageEl) {
-    memoryUsageEl.textContent = `Mem: ~${estimatedMem.toFixed(1)} MB`;
+    memoryUsageEl.textContent = `Memory Usage: ~${estimatedMem.toFixed(1)} MB`;
     memoryUsageEl.title = "Estimated RAM usage of current data (JSON + Object overhead)";
   } else if (memoryUsageEl) {
-    memoryUsageEl.textContent = 'Mem: N/A';
+    memoryUsageEl.textContent = 'Memory Usage: N/A';
   }
 }
 

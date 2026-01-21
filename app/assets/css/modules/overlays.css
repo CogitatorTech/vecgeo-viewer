@@ -146,6 +146,13 @@
   display: none;
 }
 
+/* Warning/Info banner variant */
+.error-banner.warning {
+  background: rgba(230, 180, 50, 0.15);
+  border: 1px solid rgba(230, 180, 50, 0.4);
+  border-left: 4px solid var(--accent-warning, #e6b432);
+}
+
 .error-banner button {
   background: transparent;
   border: none;
