@@ -56,7 +56,7 @@ export async function handleFile(file) {
         throw new Error('FileGDB (.gdb) requires desktop tools. Please convert to GeoJSON using QGIS or ArcGIS.');
 
       default:
-        throw new Error(`Unsupported file format: .${ext}. Supported: GeoJSON, Shapefile (zip), Parquet.`);
+        throw new Error(`Unsupported file format: .${ext}. Supported: GeoJSON, Shapefile (Zipped), Parquet.`);
     }
 
     await loadGeoJSON(geojson, file.name);
