@@ -280,3 +280,46 @@ input[type="number"]:focus {
   font-size: 0.65rem;
   color: var(--text-muted);
 }
+
+/* URL Input Section */
+.url-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 12px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.url-divider::before,
+.url-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.url-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.url-input-group input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+}
+
+.url-input-group .btn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  gap: 4px;
+}
+
+.url-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}

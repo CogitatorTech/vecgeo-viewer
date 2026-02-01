@@ -19,7 +19,7 @@ It is mainly intended as a tool to visualize and inspect geospatial data fast an
 
 ### Features
 
-- Load GeoJSON, Shapefile, and Parquet/GeoParquet files
+- Load (local or remote) GeoJSON, Shapefile, and Parquet/GeoParquet files
 - Interactive map visualization
 - Color mapping by numeric or categorical columns
 - Object filtering and transformations using DuckDB SQL

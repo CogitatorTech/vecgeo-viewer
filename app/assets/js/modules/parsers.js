@@ -9,7 +9,7 @@ import {hideLoading, showError, showLoading, showWarning} from './ui.js';
 import {transformCRS} from './crs.js';
 import {analyzeColumns} from './visualization.js';
 import {renderData} from './map.js';
-import {registerInDuckDB} from './duckdb.js';
+import {parseRemoteParquet, registerInDuckDB} from './duckdb.js';
 
 // ============================================
 // File Handler
@@ -66,6 +66,92 @@ export async function handleFile(file) {
     hideLoading();
     showError(`Error loading file: ${error.message}`);
   }
+}
+
+// ============================================
+// URL Handler
+// ============================================
+
+/**
+ * Handle loading data from a remote URL
+ * @param {string} url - The URL to load data from
+ */
+export async function handleURL(url) {
+  // Validate URL
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    showError('Invalid URL. Please enter a valid URL starting with http:// or https://');
+    return;
+  }
+
+  // Extract file extension from URL path
+  const pathname = parsedUrl.pathname;
+  const ext = pathname.split('.').pop().toLowerCase();
+
+  showLoading(`Loading from ${parsedUrl.hostname}...`);
+
+  try {
+    let geojson;
+
+    switch (ext) {
+      case 'geojson':
+      case 'json':
+        geojson = await fetchGeoJSON(url);
+        break;
+
+      case 'parquet':
+      case 'geoparquet':
+        geojson = await parseRemoteParquet(url);
+        break;
+
+      case 'zip':
+        throw new Error('Remote Shapefile (.zip) loading is not supported. Please download the file and upload it locally.');
+
+      default:
+        // Try to detect from Content-Type or attempt GeoJSON
+        console.log(`[URL] Unknown extension "${ext}", attempting to detect format...`);
+        geojson = await fetchGeoJSON(url);
+    }
+
+    // Use URL hostname + path as filename
+    const filename = `${parsedUrl.hostname}${pathname}`;
+    await loadGeoJSON(geojson, filename);
+
+  } catch (error) {
+    console.error('[URL] Error loading from URL:', error);
+    hideLoading();
+
+    // Provide user-friendly error messages
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      showError('Failed to fetch data. The URL may be blocked by CORS policy or unreachable.');
+    } else {
+      showError(`Error loading from URL: ${error.message}`);
+    }
+  }
+}
+
+/**
+ * Fetch and parse GeoJSON from URL
+ * @param {string} url - URL to fetch GeoJSON from
+ * @returns {Object} Parsed GeoJSON
+ */
+async function fetchGeoJSON(url) {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const text = await response.text();
+  const geojson = JSON.parse(text);
+
+  // Estimate file size from response
+  App.fileSize = text.length;
+
+  // Transform CRS if needed
+  return await transformCRS(geojson);
 }
 
 // ============================================
