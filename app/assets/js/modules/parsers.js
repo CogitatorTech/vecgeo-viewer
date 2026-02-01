@@ -355,7 +355,7 @@ export async function loadGeoJSON(geojson, filename) {
     App.setColumn(App.categoricalColumns[0]);
   }
 
-  hideLoading();
+  // Note: hideLoading() is called in map.js finishRendering() after render completes
   const displayedCount = currentData.features.length;
   const totalCount = App.originalData.features.length;
   if (displayedCount < totalCount) {

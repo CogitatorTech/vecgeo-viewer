@@ -169,7 +169,8 @@ export async function parseRemoteParquet(url) {
   console.log(`[DuckDB] Found geometry column: ${geometryCol || 'none'}`);
 
   // Query data
-  const sql = `SELECT * FROM parquet_scan('${url}')`;
+  const sql = `SELECT *
+               FROM parquet_scan('${url}')`;
   const result = await App.conn.query(sql);
   const rows = result.toArray();
 

@@ -120,6 +120,13 @@ App.loadFromURL = () => {
   const urlInput = document.getElementById('urlInput');
   if (urlInput && urlInput.value.trim()) {
     handleURL(urlInput.value.trim());
+  } else if (urlInput) {
+    urlInput.focus();
+    urlInput.placeholder = 'Please enter a URL...';
+    // Reset placeholder after a moment
+    setTimeout(() => {
+      urlInput.placeholder = 'https://example.com/data.geojson';
+    }, 2000);
   }
 };
 

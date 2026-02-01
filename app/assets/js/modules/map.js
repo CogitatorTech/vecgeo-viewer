@@ -6,6 +6,22 @@
 
 import {App} from '../app.js';
 import {createColorScale, updateLegend, updateStatus} from './visualization.js';
+import {hideLoading} from './ui.js';
+
+// ============================================
+// Utility Functions
+// ============================================
+
+/**
+ * Escape HTML entities to prevent XSS
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string
+ */
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 // ============================================
 // Basemap Definitions
@@ -284,7 +300,7 @@ function createRenderOptions() {
     if (feature.properties) {
       const props = Object.entries(feature.properties)
         .filter(([k, v]) => v !== null && v !== undefined)
-        .map(([k, v]) => `<strong>${k}:</strong> ${v}`)
+        .map(([k, v]) => `<strong>${escapeHtml(k)}:</strong> ${escapeHtml(String(v))}`)
         .join('<br>');
       layer.bindPopup(`<div style="max-height:200px;overflow:auto">${props}</div>`);
     }
@@ -329,6 +345,9 @@ function finishRendering(geojson, preserveView) {
 
   // Update legend
   updateLegend();
+
+  // Hide loading overlay (handles both immediate and progressive rendering)
+  hideLoading();
 }
 
 // ============================================
