@@ -126,6 +126,97 @@ export async function initDuckDB() {
 }
 
 // ============================================
+// Remote Parquet Loading
+// ============================================
+
+/**
+ * Parse a remote Parquet file using DuckDB's httpfs extension
+ * @param {string} url - URL to the remote Parquet file
+ * @returns {Object} GeoJSON FeatureCollection
+ */
+export async function parseRemoteParquet(url) {
+  if (!App.db || !App.conn) {
+    throw new Error('DuckDB is not initialized. Cannot read remote Parquet files.');
+  }
+
+  console.log(`[DuckDB] Loading remote Parquet from: ${url}`);
+
+  // Install and load httpfs extension for HTTP/HTTPS support
+  try {
+    await App.conn.query("INSTALL httpfs");
+    await App.conn.query("LOAD httpfs");
+    console.log('[DuckDB] httpfs extension loaded');
+  } catch (extError) {
+    // httpfs might already be loaded or included in the WASM build
+    console.log('[DuckDB] httpfs extension status:', extError.message);
+  }
+
+  // Query schema to find geometry column
+  const schemaResult = await App.conn.query(`DESCRIBE SELECT * FROM parquet_scan('${url}')`);
+  const schema = schemaResult.toArray();
+
+  // Find geometry column
+  let geometryCol = null;
+  const geometryNames = ['geometry', 'geom', 'wkb_geometry', 'the_geom', 'shape'];
+  for (const row of schema) {
+    const colName = row.column_name || row.name;
+    if (geometryNames.includes(colName?.toLowerCase())) {
+      geometryCol = colName;
+      break;
+    }
+  }
+
+  console.log(`[DuckDB] Found geometry column: ${geometryCol || 'none'}`);
+
+  // Query data
+  const sql = `SELECT *
+               FROM parquet_scan('${url}')`;
+  const result = await App.conn.query(sql);
+  const rows = result.toArray();
+
+  console.log(`[DuckDB] Loaded ${rows.length} rows from remote Parquet`);
+
+  // Convert to GeoJSON
+  const features = rows.map((row, idx) => {
+    let geometry = null;
+
+    // Try to parse geometry
+    if (geometryCol && row[geometryCol]) {
+      const geomData = row[geometryCol];
+      if (typeof geomData === 'object' && geomData.type) {
+        geometry = geomData;
+      } else if (typeof geomData === 'string') {
+        try {
+          geometry = JSON.parse(geomData);
+        } catch {
+          // Try WKT or other formats
+          console.warn(`[DuckDB] Could not parse geometry for row ${idx}`);
+        }
+      }
+    }
+
+    // Build properties (exclude geometry column)
+    const properties = {};
+    for (const [key, value] of Object.entries(row)) {
+      if (key !== geometryCol) {
+        properties[key] = value;
+      }
+    }
+
+    return {
+      type: 'Feature',
+      properties,
+      geometry
+    };
+  }).filter(f => f.geometry);
+
+  return {
+    type: 'FeatureCollection',
+    features
+  };
+}
+
+// ============================================
 // Data Registration
 // ============================================
 

@@ -98,20 +98,38 @@
               <line x1="12" x2="12" y1="3" y2="15"/>
             </svg>
             <span>Drop files or click to upload</span>
-            <small>GeoJSON, Shapefile (Zip), or Parquet</small>
+            <small>GeoJSON, Shapefile, or Parquet</small>
           </label>
         </div>
+
+        <div class="url-divider">
+          <span>or load from URL</span>
+        </div>
+
+        <div class="url-input-group">
+          <label class="visually-hidden" for="urlInput">Dataset URL</label>
+          <input id="urlInput" onkeydown="if(event.key==='Enter') App.loadFromURL()"
+                 placeholder="https://example.com/data.geojson"
+                 type="text">
+          <button class="btn btn-primary" id="loadUrlBtn" onclick="App.loadFromURL()">
+            <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+              <path
+                d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/>
+            </svg>
+            Load
+          </button>
+        </div>
+        <small class="url-hint">Supports GeoJSON and Parquet URLs</small>
       </div>
 
       <div class="panel-section" id="dataControls" style="display: none;">
         <h3>Performance Settings</h3>
 
         <div class="control-group">
-          <label for="featureLimitInput">Object Limit</label>
+          <label for="featureLimitInput">Object Limit (0=all)</label>
           <div class="range-with-value">
-            <input id="featureLimitInput" max="1000000" min="0" onchange="App.setFeatureLimit(this.value)" step="10000"
-                   type="number"
-                   value="100000">
+            <input id="featureLimitInput" max="1000000" min="0" onchange="App.setFeatureLimit(this.value)"
+                   step="10000" type="number" value="100000">
             <small id="featureLimitStatus">0 = no limit</small>
           </div>
         </div>
@@ -120,8 +138,7 @@
           <label for="simplifyInput">Simplify Tolerance</label>
           <div class="range-with-value">
             <input id="simplifyInput" max="0.1" min="0" oninput="App.setSimplifyTolerance(this.value)" step="0.001"
-                   type="range"
-                   value="0.001">
+                   type="range" value="0.001">
             <span id="simplifyValue">0.001</span>
           </div>
         </div>
@@ -245,7 +262,7 @@
           <p>Drag and drop a file to get started, or use the upload button.</p>
           <div class="supported-formats">
             <span class="format-badge">GeoJSON</span>
-            <span class="format-badge">Shapefile (zip)</span>
+            <span class="format-badge">Shapefile</span>
             <span class="format-badge">Parquet</span>
           </div>
         </div>
@@ -298,6 +315,9 @@
           <li><strong>Shapefile:</strong> zip file containing .shp, .dbf, or .prj files</li>
           <li><strong>Parquet:</strong> .parquet and .geoparquet files</li>
         </ul>
+        <p style="margin-top: 8px; font-size: 0.85em; color: var(--text-secondary);">
+          <strong>Remote URLs:</strong> Enter a URL to load GeoJSON or Parquet datasets directly from the web.
+        </p>
       </div>
       <div class="help-section">
         <h3>Keyboard Shortcuts</h3>
@@ -341,7 +361,7 @@ SELECT *, pop/area AS density FROM data</code></pre>
       </div>
     </div>
     <div class="modal-footer">
-      <p>VecGeo Viewer v0.3.1</p>
+      <p>VecGeo Viewer v0.3.2</p>
     </div>
   </div>
 </div>

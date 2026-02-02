@@ -194,6 +194,10 @@ export function updateLegend() {
   const legendSection = document.getElementById('legendSection');
   const legendContent = document.getElementById('legendContent');
 
+  if (!legendSection || !legendContent) {
+    return;
+  }
+
   if (!App.currentColumn || !App.colorScale) {
     legendSection.style.display = 'none';
     return;

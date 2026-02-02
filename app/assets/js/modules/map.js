@@ -6,6 +6,22 @@
 
 import {App} from '../app.js';
 import {createColorScale, updateLegend, updateStatus} from './visualization.js';
+import {hideLoading} from './ui.js';
+
+// ============================================
+// Utility Functions
+// ============================================
+
+/**
+ * Escape HTML entities to prevent XSS
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string
+ */
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 // ============================================
 // Basemap Definitions
@@ -92,12 +108,23 @@ export function initMap() {
 // Rendering
 // ============================================
 
+// Threshold for progressive rendering (features)
+const PROGRESSIVE_THRESHOLD = 1000;
+// Chunk size for progressive rendering
+const CHUNK_SIZE = 500;
+
 /**
  * Render GeoJSON data on the map
  * @param {Object} geojson - GeoJSON data to render
  * @param {boolean} preserveView - If true, don't change the current map view
  */
 export function renderData(geojson, preserveView = false) {
+  // Cancel any ongoing progressive render
+  if (App._renderAbortController) {
+    App._renderAbortController.abort();
+    App._renderAbortController = null;
+  }
+
   // Remove existing layer
   if (App.geoJsonLayer) {
     App.map.removeLayer(App.geoJsonLayer);
@@ -117,6 +144,101 @@ export function renderData(geojson, preserveView = false) {
     createColorScale(geojson);
   }
 
+  const featureCount = geojson.features.length;
+
+  // Use progressive rendering for large datasets
+  if (featureCount > PROGRESSIVE_THRESHOLD) {
+    renderDataProgressively(geojson, preserveView);
+  } else {
+    renderDataImmediate(geojson, preserveView);
+  }
+}
+
+/**
+ * Render data immediately (for small datasets)
+ */
+function renderDataImmediate(geojson, preserveView) {
+  const {style, pointToLayer, onEachFeature} = createRenderOptions();
+
+  App.geoJsonLayer = L.geoJSON(geojson, {
+    style,
+    pointToLayer,
+    onEachFeature
+  }).addTo(App.map);
+
+  finishRendering(geojson, preserveView);
+}
+
+/**
+ * Render data progressively in chunks (for large datasets)
+ */
+function renderDataProgressively(geojson, preserveView) {
+  const features = geojson.features;
+  const totalCount = features.length;
+  const {style, pointToLayer, onEachFeature} = createRenderOptions();
+
+  // Create empty layer group
+  App.geoJsonLayer = L.layerGroup().addTo(App.map);
+
+  // Create abort controller for cancellation
+  const abortController = new AbortController();
+  App._renderAbortController = abortController;
+
+  let renderedCount = 0;
+  const loadingText = document.getElementById('loadingText');
+
+  console.log(`[Map] Progressive rendering ${totalCount} features in chunks of ${CHUNK_SIZE}`);
+
+  function renderChunk() {
+    if (abortController.signal.aborted) {
+      console.log('[Map] Render aborted');
+      return;
+    }
+
+    const start = renderedCount;
+    const end = Math.min(start + CHUNK_SIZE, totalCount);
+    const chunk = features.slice(start, end);
+
+    // Create GeoJSON layer for this chunk
+    const chunkCollection = {
+      type: 'FeatureCollection',
+      features: chunk
+    };
+
+    const chunkLayer = L.geoJSON(chunkCollection, {
+      style,
+      pointToLayer,
+      onEachFeature
+    });
+
+    App.geoJsonLayer.addLayer(chunkLayer);
+    renderedCount = end;
+
+    // Update progress
+    const progress = Math.round((renderedCount / totalCount) * 100);
+    if (loadingText) {
+      loadingText.textContent = `Rendering ${progress}% (${renderedCount.toLocaleString()} / ${totalCount.toLocaleString()})`;
+    }
+
+    if (renderedCount < totalCount) {
+      // Schedule next chunk
+      requestAnimationFrame(renderChunk);
+    } else {
+      // Finished rendering
+      App._renderAbortController = null;
+      finishRendering(geojson, preserveView);
+      console.log(`[Map] Progressive rendering complete: ${totalCount} features`);
+    }
+  }
+
+  // Start rendering
+  requestAnimationFrame(renderChunk);
+}
+
+/**
+ * Create render options (style, pointToLayer, onEachFeature)
+ */
+function createRenderOptions() {
   // Style function
   const style = (feature) => {
     let fillColor = '#666';
@@ -146,7 +268,6 @@ export function renderData(geojson, preserveView = false) {
             }
           }
         } catch (e) {
-          // If color scale fails, use default
           fillColor = '#888';
           fillOpacity = 0.3;
         }
@@ -174,28 +295,44 @@ export function renderData(geojson, preserveView = false) {
     });
   };
 
-  // Create layer
-  App.geoJsonLayer = L.geoJSON(geojson, {
-    style,
-    pointToLayer,
-    onEachFeature: (feature, layer) => {
-      // Popup with properties
-      if (feature.properties) {
-        const props = Object.entries(feature.properties)
-          .filter(([k, v]) => v !== null && v !== undefined)
-          .map(([k, v]) => `<strong>${k}:</strong> ${v}`)
-          .join('<br>');
-        layer.bindPopup(`<div style="max-height:200px;overflow:auto">${props}</div>`);
+  // Feature interaction
+  const onEachFeature = (feature, layer) => {
+    if (feature.properties) {
+      const props = Object.entries(feature.properties)
+        .filter(([k, v]) => v !== null && v !== undefined)
+        .map(([k, v]) => `<strong>${escapeHtml(k)}:</strong> ${escapeHtml(String(v))}`)
+        .join('<br>');
+      layer.bindPopup(`<div style="max-height:200px;overflow:auto">${props}</div>`);
+    }
+  };
+
+  return {style, pointToLayer, onEachFeature};
+}
+
+/**
+ * Finish rendering (fit bounds, update status)
+ */
+function finishRendering(geojson, preserveView) {
+  // Fit bounds only if not preserving view
+  if (!preserveView && App.geoJsonLayer) {
+    let bounds;
+    if (typeof App.geoJsonLayer.getBounds === 'function') {
+      bounds = App.geoJsonLayer.getBounds();
+    } else if (App.geoJsonLayer.getLayers) {
+      // For layer groups, compute bounds from child layers
+      const layers = App.geoJsonLayer.getLayers();
+      if (layers.length > 0) {
+        bounds = L.latLngBounds();
+        layers.forEach(layer => {
+          if (typeof layer.getBounds === 'function') {
+            bounds.extend(layer.getBounds());
+          }
+        });
       }
     }
-  }).addTo(App.map);
 
-  // Fit bounds only if not preserving view
-  if (!preserveView) {
-    const bounds = App.geoJsonLayer.getBounds();
-    if (bounds.isValid()) {
+    if (bounds && bounds.isValid()) {
       App.dataBounds = bounds;
-      // Use maxZoom to prevent zooming too far in on small result sets
       App.map.fitBounds(bounds, {
         padding: [50, 50],
         maxZoom: 16
@@ -208,6 +345,9 @@ export function renderData(geojson, preserveView = false) {
 
   // Update legend
   updateLegend();
+
+  // Hide loading overlay (handles both immediate and progressive rendering)
+  hideLoading();
 }
 
 // ============================================

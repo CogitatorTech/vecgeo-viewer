@@ -13,7 +13,7 @@
 
 import {initMap, renderData, resetView, setBasemap, toggleBasemap} from './modules/map.js';
 import {exportData, initDuckDB, resetFilter, runSQL} from './modules/duckdb.js';
-import {handleFile} from './modules/parsers.js';
+import {handleFile, handleURL} from './modules/parsers.js';
 import {analyzeColumns, cycleColormap, cycleColumn, setColormap, setColumn} from './modules/visualization.js';
 import {
   dataTableNextPage,
@@ -114,6 +114,21 @@ App.sortDataTable = sortDataTable;
 App.dataTablePrevPage = dataTablePrevPage;
 App.dataTableNextPage = dataTableNextPage;
 App.setDataTablePageSize = setDataTablePageSize;
+
+// URL loading
+App.loadFromURL = () => {
+  const urlInput = document.getElementById('urlInput');
+  if (urlInput && urlInput.value.trim()) {
+    handleURL(urlInput.value.trim());
+  } else if (urlInput) {
+    urlInput.focus();
+    urlInput.placeholder = 'Please enter a URL...';
+    // Reset placeholder after a moment
+    setTimeout(() => {
+      urlInput.placeholder = 'https://example.com/data.geojson';
+    }, 2000);
+  }
+};
 
 // Rendering settings methods
 App.setFeatureLimit = (value) => {
